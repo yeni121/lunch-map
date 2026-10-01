@@ -6,6 +6,9 @@ body {
   color: #363636;
   font-family: sans-serif;
   margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {
@@ -23,10 +26,12 @@ h1 {
 
 .content {
   display: flex;
-  min-height: 500px;
+  flex: 1;
+  min-height: 0;
   gap: 16px;
   padding: 16px;
 }
+
 
 .map-area {
   flex: 2;
@@ -314,4 +319,31 @@ h1 {
   color: #c9335d;
   font-size: 13px;
   line-height: 1.5;
+}
+.list-area,
+.detail-area,
+.add-area {
+  overflow-y: auto;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pager button {
+  background-color: white;
+  color: #c9335d;
+  border: 1px solid #c9335d;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.pager-text {
+  color: #888888;
+  font-size: 14px;
 }

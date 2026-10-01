@@ -58,6 +58,8 @@ let cameFromSearch = false;    // 검색 결과에서 자세히 보기로 왔는
 let addScore = 0;              // 맛집 추가할 때 고른 별 개수
 let selectedCategory = "전체"; // 목록에서 고른 음식 종류
 let cards = [];                // 목록에 그린 맛집 카드들
+const LIST_PAGE_SIZE = 7;      // 목록에 한 번에 보여줄 개수
+let listPage = 1;               // 지금 보고 있는 목록 페이지
 
 // 우리 사이트의 음식 종류 7가지 (기획서 규칙)
 const CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페·디저트", "기타"];
@@ -206,7 +208,11 @@ async function loadRestaurants() {
 
   // 별점 높은 순으로 줄 세우기 (별점 없는 가게는 맨 아래)
   data.sort(function (a, b) {
-    return averageScore(b.ratings) - averageScore(a.ratings);
+    const diff = averageScore(b.ratings) - averageScore(a.ratings);
+    if (diff !== 0) {
+      return diff;
+    }
+    return b.ratings.length - a.ratings.length;
   });
 
   // 맛집이 하나도 없을 때 (빈 상태)
@@ -265,10 +271,12 @@ async function loadRestaurants() {
     filterSelect.value = selectedCategory;
     filterSelect.addEventListener("change", function () {
       selectedCategory = filterSelect.value;
+      listPage = 1; 
       applyFilter();
     });
     listArea.append(filterSelect);
   }
+
 
   data.forEach(function (restaurant) {
     // 목록에 카드 추가
@@ -300,7 +308,36 @@ async function loadRestaurants() {
       showDetail(restaurant);
     });
   });
+    // 🆕 목록 더보기 버튼
+  // 🆕 페이지 넘기기 버튼
+  if (data.length > 0) {
+    const pager = document.createElement("div");
+    pager.className = "pager";
 
+    const prevButton = document.createElement("button");
+    prevButton.className = "pager-prev";
+    prevButton.textContent = "‹ 이전";
+    prevButton.addEventListener("click", function () {
+      listPage = listPage - 1;
+      applyFilter();
+      listArea.scrollTop = 0;
+    });
+
+    const pageText = document.createElement("span");
+    pageText.className = "pager-text";
+
+    const nextButton = document.createElement("button");
+    nextButton.className = "pager-next";
+    nextButton.textContent = "다음 ›";
+    nextButton.addEventListener("click", function () {
+      listPage = listPage + 1;
+      applyFilter();
+      listArea.scrollTop = 0;
+    });
+
+    pager.append(prevButton, pageText, nextButton);
+    listArea.append(pager);
+  }
   // 🆕 고른 종류에 맛집이 없을 때 안내
   if (data.length > 0) {
     const filterEmpty = document.createElement("p");
@@ -667,27 +704,72 @@ function categoryOf(restaurant) {
   return "기타";
 }
 
-// 25. 고른 음식 종류만 보여주기
+// 25. 고른 음식 종류를, 지금 페이지 것만 보여주기
 function applyFilter() {
-  let visibleCount = 0;
+  function isMatch(restaurant) {
+    return selectedCategory === "전체" || categoryOf(restaurant) === selectedCategory;
+  }
 
-  restaurants.forEach(function (restaurant, index) {
-    const show = selectedCategory === "전체" || categoryOf(restaurant) === selectedCategory;
-
-    cards[index].hidden = !show;
-    if (show) {
-      markers[index].setMap(map);
-      visibleCount = visibleCount + 1;
-    } else {
-      markers[index].setMap(null);
+  // 1) 고른 종류에 맞는 가게가 몇 개인지 먼저 세기
+  let matchCount = 0;
+  restaurants.forEach(function (restaurant) {
+    if (isMatch(restaurant)) {
+      matchCount = matchCount + 1;
     }
   });
 
+  // 2) 전체 페이지 수 계산하고, 지금 페이지가 범위를 벗어나지 않게
+  const totalPages = Math.max(1, Math.ceil(matchCount / LIST_PAGE_SIZE));
+  if (listPage > totalPages) {
+    listPage = totalPages;
+  }
+  if (listPage < 1) {
+    listPage = 1;
+  }
+
+  // 3) 이 페이지에 보여줄 순서 범위 (0부터 세요!)
+  const start = (listPage - 1) * LIST_PAGE_SIZE;
+  const end = start + LIST_PAGE_SIZE;
+
+  // 4) 카드와 핀 보여주기 / 숨기기
+  let order = 0;
+  restaurants.forEach(function (restaurant, index) {
+    if (isMatch(restaurant)) {
+      markers[index].setMap(map);
+      cards[index].hidden = !(order >= start && order < end);
+      order = order + 1;
+    } else {
+      markers[index].setMap(null);
+      cards[index].hidden = true;
+    }
+  });
+
+  // 5) 안내 문구와 페이지 버튼 정리
   const filterEmpty = listArea.querySelector(".filter-empty");
   if (filterEmpty) {
-    filterEmpty.hidden = visibleCount > 0;
+    filterEmpty.hidden = matchCount > 0;
+  }
+
+  const pager = listArea.querySelector(".pager");
+  if (pager) {
+    pager.hidden = totalPages <= 1;
+    pager.querySelector(".pager-text").textContent = listPage + " / " + totalPages;
+
+    // 첫 페이지에선 [이전], 마지막 페이지에선 [다음]을 숨기기 (자리는 그대로)
+    if (listPage === 1) {
+      pager.querySelector(".pager-prev").style.visibility = "hidden";
+    } else {
+      pager.querySelector(".pager-prev").style.visibility = "visible";
+    }
+
+    if (listPage === totalPages) {
+      pager.querySelector(".pager-next").style.visibility = "hidden";
+    } else {
+      pager.querySelector(".pager-next").style.visibility = "visible";
+    }
   }
 }
+
 // 26. 음식 종류 목록 만들기 (맛집 추가 칸, 수정 칸)
 CATEGORIES.forEach(function (category) {
   const addOption = document.createElement("option");
