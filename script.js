@@ -188,7 +188,6 @@ submitRatingButton.addEventListener("click", async function () {
 });
 
 // 12. 게시판에서 맛집 불러와서 보여주기
-// 12. 게시판에서 맛집 불러와서 보여주기
 async function loadRestaurants() {
   const { data, error } = await db.from("restaurants").select("*, ratings(score, user_name)");
 
@@ -237,6 +236,11 @@ async function loadRestaurants() {
     topAddButton.textContent = "+ 맛집 추가";
     topAddButton.addEventListener("click", openAddArea);
     listArea.append(topAddButton);
+    // 🆕 맛집 추가 안내 문구
+    const addHint = document.createElement("p");
+    addHint.className = "list-hint";
+    addHint.textContent = "💡 지도에서 가게를 눌러 추가하고 싶다면, 먼저 위의 [+ 맛집 추가]를 눌러 주세요!";
+    listArea.append(addHint);
 
     // 🆕 음식 종류 골라보기
     const filterSelect = document.createElement("select");

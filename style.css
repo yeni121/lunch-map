@@ -306,3 +306,12 @@ h1 {
   padding: 8px;
   cursor: pointer;
 }
+.list-hint {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background-color: #fdf0f3;
+  border-radius: 6px;
+  color: #c9335d;
+  font-size: 13px;
+  line-height: 1.5;
+}
