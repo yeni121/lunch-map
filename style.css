@@ -1,0 +1,308 @@
+[hidden] {
+  display: none !important;
+}
+body {
+  background-color: #faf7f8;
+  color: #363636;
+  font-family: sans-serif;
+  margin: 0;
+}
+
+h1 {
+  color: #ea5079;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  background-color: white;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.content {
+  display: flex;
+  min-height: 500px;
+  gap: 16px;
+  padding: 16px;
+}
+
+.map-area {
+  flex: 2;
+  background-color: #eeeeee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.list-area {
+  flex: 1;
+  padding: 0px;
+}
+.restaurant-item{
+    background-color:white;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    border: 1px solid #eeeeee;
+}
+.restaurant-item p {
+    margin: 4px 0 0;
+    color: #888888;
+    font-size: 14px;
+}
+.restaurant-item:hover {
+  border-color: #ea5079;
+  cursor: pointer;
+}
+
+.detail-area {
+  flex: 1;
+  padding: 0px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #888888;
+  cursor: pointer;
+  padding: 0;
+}
+.rating-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eeeeee;
+}
+
+.rating-form input {
+  padding: 8px 10px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.star {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #dddddd;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.star.on {
+  color: #ea5079;
+}
+
+.submit-rating {
+  background-color: #c9335d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.add-area {
+  flex: 1;
+  padding: 0px;
+}
+
+.add-help {
+  color: #888888;
+  font-size: 14px;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.search-row input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.search-button {
+  background-color: #c9335d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.search-result {
+  background-color: white;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #eeeeee;
+  cursor: pointer;
+}
+
+.search-result:hover {
+  border-color: #ea5079;
+}
+
+.search-result p {
+  margin: 4px 0 0;
+  color: #888888;
+  font-size: 13px;
+}
+.search-result.on {
+  border-color: #ea5079;
+  background-color: #fdf0f3;
+}
+
+.rating-form select {
+  padding: 8px 10px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.selected-place {
+  font-weight: bold;
+  margin: 0;
+}
+
+.submit-add {
+  background-color: #c9335d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.more-button {
+  width: 100%;
+  background-color: white;
+  color: #c9335d;
+  border: 1px solid #c9335d;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.delete-button {
+  background: none;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  color: #888888;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  border-color: #c9335d;
+  color: #c9335d;
+}
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  background-color: white;
+  border: 1px dashed #dddddd;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #888888;
+  font-size: 14px;
+}
+.list-add-button {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.category-filter {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+}
+
+.filter-empty {
+  color: #888888;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+}
+.detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button {
+  background: none;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  color: #888888;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.edit-button:hover {
+  border-color: #363636;
+  color: #363636;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+}
+
+.edit-form select {
+  padding: 8px 10px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.save-edit {
+  flex: 1;
+  background-color: #c9335d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.cancel-edit {
+  flex: 1;
+  background-color: white;
+  color: #888888;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}

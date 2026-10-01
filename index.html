@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>오늘 뭐 먹지?</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:,">
+</head>
+<body>
+    <header class="top-bar">
+        <h1>오늘 뭐 먹지?</h1>
+    </header>
+
+    <main class="content">
+        <section class="map-area">
+
+        </section>
+        <section class="list-area">
+        
+        </section>
+        <section class="detail-area" hidden>
+            <button class="back-button">← 목록으로</button>
+            <h2 class="detail-name"></h2>
+            <p class="detail-info"></p>
+            <p class="detail-rating"></p>
+            <div class="detail-actions">
+                <button class="edit-button">수정</button>
+                <button class="delete-button">삭제</button>
+            </div>
+            <div class="edit-form" hidden>
+                <label for="edit-category">음식 종류 바꾸기</label>
+                <select id="edit-category"></select>
+                <div class="edit-buttons">
+                    <button class="save-edit">저장</button>
+                    <button class="cancel-edit">취소</button>
+                </div>
+            </div>            
+            <div class="rating-form">
+                <label for="user-name">내 이름(닉네임)</label>
+                <input id="user-name" type="text" maxlength="10" placeholder="예: 김팀원">
+                <div class="stars">
+                    <button class="star" data-score="1">★</button>
+                    <button class="star" data-score="2">★</button>
+                    <button class="star" data-score="3">★</button>
+                    <button class="star" data-score="4">★</button>
+                    <button class="star" data-score="5">★</button>
+                </div>
+                <button class="submit-rating">별점 남기기</button>
+            </div>
+        </section>
+        <section class="add-area" hidden>
+            <button class="back-button add-back-button">← 목록으로</button>
+            <h2>새 맛집 추가하기</h2>
+            <p class="add-help">가게 이름으로 검색하거나, 지도에서 가게를 눌러 보세요 (경찰병원역 1km 안)</p>
+            <div class="search-row">
+                <input id="search-input" type="text" placeholder="예: 순대국">
+                <button class="search-button">검색</button>
+            </div>
+            <div class="search-results"></div>
+            <div class="rating-form add-form" hidden>
+                <p class="selected-place"></p>
+                <label for="add-category">음식 종류 (자동으로 골랐어요, 바꿀 수 있어요)</label>
+                <select id="add-category"></select>
+                <label for="add-user-name">내 이름(닉네임)</label>
+                <input id="add-user-name" type="text" maxlength="10" placeholder="예: 김팀원">
+                <label>별점 (선택 · 가 봤다면 남겨 주세요)</label>
+                <div class="stars">
+                    <button class="star" data-score="1">★</button>
+                    <button class="star" data-score="2">★</button>
+                    <button class="star" data-score="3">★</button>
+                    <button class="star" data-score="4">★</button>
+                    <button class="star" data-score="5">★</button>
+                </div>
+                <button class="submit-add">추가하기</button>
+            </div>
+        </section>
+    </main>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4b115a3683fbce125b2440b789997bf0&libraries=services"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
