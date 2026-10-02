@@ -514,6 +514,51 @@ h1 {
   cursor: pointer;
 }
 /* 📱 휴대폰처럼 좁은 화면 (가로 768px 이하) */
+/* 🆕 더 알아보기 (카카오맵 · 블로그 리뷰 링크) */
+.more-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eeeeee;
+}
+
+.more-info-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  color: #363636;
+  text-decoration: none;
+}
+
+.info-card:hover {
+  border-color: #ea5079;
+}
+
+.info-card b {
+  font-size: 14px;
+}
+
+.info-icon {
+  font-size: 20px;
+}
+
+.info-site {
+  color: #888888;
+  font-size: 12px;
+}
+
 @media (max-width: 768px) {
   body {
     height: auto;
