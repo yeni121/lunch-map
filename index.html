@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>오늘 뭐 먹지?</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:,">
@@ -34,7 +35,8 @@
                     <button class="save-edit">저장</button>
                     <button class="cancel-edit">취소</button>
                 </div>
-            </div>            
+            </div>
+            <div class="review-list"></div>
             <div class="rating-form">
                 <label for="user-name">내 이름(닉네임)</label>
                 <input id="user-name" type="text" maxlength="10" placeholder="예: 김팀원">
@@ -45,7 +47,38 @@
                     <button class="star" data-score="4">★</button>
                     <button class="star" data-score="5">★</button>
                 </div>
+                <label for="review-comment">한 줄 평 (선택)</label>
+                <input id="review-comment" type="text" maxlength="50" placeholder="분위기나 서비스는 어땠나요?">
                 <button class="submit-rating">별점 남기기</button>
+            </div>
+                        <div class="menu-section">
+                <div class="menu-header">
+                    <strong>🍲 메뉴</strong>
+                    <button class="menu-add-toggle">+ 메뉴 추가</button>
+                </div>
+                <div class="menu-add-form" hidden>
+                    <input id="menu-name" type="text" maxlength="30" placeholder="메뉴 이름 (예: 순대국 특)">
+                    <input id="menu-price" type="number" min="0" step="500" placeholder="가격 (선택, 원)">
+                    <div class="edit-buttons">
+                        <button class="save-menu">추가</button>
+                        <button class="cancel-menu">취소</button>
+                    </div>
+                </div>
+                <div class="menu-list"></div>
+                                <div class="menu-review-form" hidden>
+                    <div class="stars">
+                        <button class="star" data-score="1">★</button>
+                        <button class="star" data-score="2">★</button>
+                        <button class="star" data-score="3">★</button>
+                        <button class="star" data-score="4">★</button>
+                        <button class="star" data-score="5">★</button>
+                    </div>
+                    <input id="menu-review-comment" type="text" maxlength="50" placeholder="이 메뉴 맛은 어땠나요? (선택)">
+                    <div class="edit-buttons">
+                        <button class="save-menu-review">리뷰 남기기</button>
+                        <button class="cancel-menu-review">취소</button>
+                    </div>
+                </div>
             </div>
         </section>
         <section class="add-area" hidden>

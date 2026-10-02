@@ -5,15 +5,47 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // 2. 지도 그리기
 const mapArea = document.querySelector(".map-area");
-const center = new kakao.maps.LatLng(37.4959, 127.1244);
+const center = new kakao.maps.LatLng(37.4939203282553, 127.123900079395);
 const map = new kakao.maps.Map(mapArea, {
   center: center,
   level: 3
 });
 
-// 3. 회사 핀 꽂기
+// 3. 회사 핀 꽂기 (맛집 핀과 다르게!)
+const companySvg =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 36 46">' +
+  '<path d="M18 0C8.1 0 0 8.1 0 18c0 13.5 18 28 18 28s18-14.5 18-28C36 8.1 27.9 0 18 0z" fill="#363636"/>' +
+  '<rect x="11" y="9" width="14" height="17" rx="1.5" fill="white"/>' +
+  '<rect x="14" y="12" width="3" height="3" fill="#363636"/>' +
+  '<rect x="19" y="12" width="3" height="3" fill="#363636"/>' +
+  '<rect x="14" y="17" width="3" height="3" fill="#363636"/>' +
+  '<rect x="19" y="17" width="3" height="3" fill="#363636"/>' +
+  '<rect x="16.5" y="22" width="3" height="4" fill="#ea5079"/>' +
+  '</svg>';
+
+const companyImage = new kakao.maps.MarkerImage(
+  "data:image/svg+xml;charset=utf-8," + encodeURIComponent(companySvg),
+  new kakao.maps.Size(36, 46),
+  { offset: new kakao.maps.Point(18, 46) }
+);
+
 const companyMarker = new kakao.maps.Marker({
   position: center,
+  map: map,
+  image: companyImage,
+  zIndex: 10
+});
+
+// 회사 이름표 (핀 위에 STAT&CO)
+const companyLabel = document.createElement("div");
+companyLabel.className = "company-label";
+companyLabel.textContent = "STAT&CO";
+
+new kakao.maps.CustomOverlay({
+  position: center,
+  content: companyLabel,
+  yAnchor: 1,
+  zIndex: 11,
   map: map
 });
 
@@ -25,7 +57,7 @@ const detailInfo = document.querySelector(".detail-info");
 const detailRating = document.querySelector(".detail-rating");
 const backButton = document.querySelector(".back-button");
 const userNameInput = document.querySelector("#user-name");
-const starButtons = document.querySelectorAll(".detail-area .star");
+const starButtons = document.querySelectorAll(".detail-area .rating-form .star");
 const addStarButtons = document.querySelectorAll(".add-form .star");
 const submitRatingButton = document.querySelector(".submit-rating");
 const addArea = document.querySelector(".add-area");
@@ -44,6 +76,20 @@ const editForm = document.querySelector(".edit-form");
 const editCategorySelect = document.querySelector("#edit-category");
 const saveEditButton = document.querySelector(".save-edit");
 const cancelEditButton = document.querySelector(".cancel-edit");
+const reviewCommentInput = document.querySelector("#review-comment");
+const reviewList = document.querySelector(".review-list");
+const menuAddToggle = document.querySelector(".menu-add-toggle");
+const menuAddForm = document.querySelector(".menu-add-form");
+const menuNameInput = document.querySelector("#menu-name");
+const menuPriceInput = document.querySelector("#menu-price");
+const saveMenuButton = document.querySelector(".save-menu");
+const cancelMenuButton = document.querySelector(".cancel-menu");
+const menuList = document.querySelector(".menu-list");
+const menuReviewForm = document.querySelector(".menu-review-form");
+const menuStarButtons = document.querySelectorAll(".menu-review-form .star");
+const menuReviewComment = document.querySelector("#menu-review-comment");
+const saveMenuReviewButton = document.querySelector(".save-menu-review");
+const cancelMenuReviewButton = document.querySelector(".cancel-menu-review");
 
 // 5. 기억해 둘 것들
 let selectedRestaurant = null; // 지금 보고 있는 가게
@@ -60,6 +106,8 @@ let selectedCategory = "전체"; // 목록에서 고른 음식 종류
 let cards = [];                // 목록에 그린 맛집 카드들
 const LIST_PAGE_SIZE = 7;      // 목록에 한 번에 보여줄 개수
 let listPage = 1;               // 지금 보고 있는 목록 페이지
+let selectedMenu = null;        // 리뷰 쓰는 중인 메뉴
+let menuScore = 0;              // 메뉴 리뷰에서 고른 별 개수
 
 // 우리 사이트의 음식 종류 7가지 (기획서 규칙)
 const CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페·디저트", "기타"];
@@ -115,9 +163,11 @@ function showDetail(restaurant, fromSearch) {
 
   if (myRating) {
     selectedScore = myRating.score;
+    reviewCommentInput.value = myRating.comment || "";
     submitRatingButton.textContent = "별점 고치기";
   } else {
     selectedScore = 0;
+    reviewCommentInput.value = "";
     submitRatingButton.textContent = "별점 남기기";
   }
   paintStars();
@@ -125,6 +175,9 @@ function showDetail(restaurant, fromSearch) {
   detailName.textContent = restaurant.name;
   detailInfo.textContent = restaurant.category;
   detailRating.textContent = ratingText(restaurant.ratings);
+  renderReviews(restaurant);
+  renderMenus(restaurant);
+  menuAddForm.hidden = true;
 
   listArea.hidden = true;
   addArea.hidden = true;
@@ -132,6 +185,10 @@ function showDetail(restaurant, fromSearch) {
   editForm.hidden = true;
 
   map.panTo(new kakao.maps.LatLng(restaurant.lat, restaurant.lng));
+  // 📱 휴대폰에서는 자세히 보기가 지도 아래에 있으니까, 그쪽으로 스르륵 내려가기
+  if (window.innerWidth <= 768) {
+    detailArea.scrollIntoView({ behavior: "smooth" });
+  }
 }
 
 // 9. 목록으로 돌아가기
@@ -169,7 +226,8 @@ submitRatingButton.addEventListener("click", async function () {
     {
       restaurant_id: selectedRestaurant.id,
       user_name: userName,
-      score: selectedScore
+      score: selectedScore,
+      comment: reviewCommentInput.value.trim() || null
     },
     { onConflict: "restaurant_id,user_name" }
   );
@@ -191,9 +249,9 @@ submitRatingButton.addEventListener("click", async function () {
 
 // 12. 게시판에서 맛집 불러와서 보여주기
 async function loadRestaurants() {
-  const { data, error } = await db.from("restaurants").select("*, ratings(score, user_name)");
-
-  if (error) {
+  const { data, error } = await db.from("restaurants").select(
+    "*, ratings(score, user_name, comment, created_at), menus(id, name, price, created_by, menu_reviews(score, user_name, comment, created_at))"
+  );  if (error) {
     console.log("맛집을 불러오지 못했어요:", error);
     return [];
   }
@@ -810,6 +868,264 @@ saveEditButton.addEventListener("click", async function () {
     return restaurant.id === selectedRestaurant.id;
   });
   showDetail(updated, cameFromSearch);
+});
+
+// 28. 가게 리뷰(한 줄 평) 목록 그리기
+function renderReviews(restaurant) {
+  reviewList.innerHTML = "";
+
+  const reviews = restaurant.ratings.filter(function (rating) {
+    return rating.comment;
+  });
+
+  reviews.sort(function (a, b) {
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+
+  const title = document.createElement("strong");
+  title.textContent = "🏪 가게 리뷰 (" + reviews.length + ")";
+  reviewList.append(title);
+
+  if (reviews.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "review-empty";
+    empty.textContent = "아직 한 줄 평이 없어요. 첫 번째로 남겨 보세요!";
+    reviewList.append(empty);
+    return;
+  }
+
+  reviews.forEach(function (review) {
+    const item = document.createElement("div");
+    item.className = "review-item";
+
+    const text = document.createElement("p");
+    text.textContent = "★" + review.score + "  \"" + review.comment + "\"";
+
+    const writer = document.createElement("span");
+    writer.textContent = "- " + review.user_name;
+
+    item.append(text, writer);
+    reviewList.append(item);
+  });
+}
+
+// 29. 메뉴 목록 그리기
+function renderMenus(restaurant) {
+  menuReviewForm.hidden = true;
+  menuList.innerHTML = "";
+  const menus = restaurant.menus;
+
+  if (menus.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "review-empty";
+    empty.textContent = "아직 등록된 메뉴가 없어요. 먹어 본 메뉴를 올려 주세요!";
+    menuList.append(empty);
+    return;
+  }
+
+  // 먼저 올린 메뉴가 위로
+  menus.sort(function (a, b) {
+    return a.id - b.id;
+  });
+
+  const myName = userNameInput.value.trim();
+
+  menus.forEach(function (menu) {
+    const item = document.createElement("div");
+    item.className = "menu-item";
+
+    // 윗줄: 메뉴 이름 / 가격 · 별점 / [리뷰] 버튼
+    const top = document.createElement("div");
+    top.className = "menu-top";
+
+    const nameText = document.createElement("strong");
+    nameText.textContent = menu.name;
+
+    let infoText = "";
+    if (menu.price !== null) {
+      infoText = menu.price.toLocaleString() + "원 · ";
+    }
+    infoText = infoText + ratingText(menu.menu_reviews);
+
+    const info = document.createElement("span");
+    info.textContent = infoText;
+
+    const reviewButton = document.createElement("button");
+    reviewButton.className = "menu-review-button";
+    const mine = menu.menu_reviews.find(function (review) {
+      return review.user_name === myName;
+    });
+    if (mine) {
+      reviewButton.textContent = "리뷰 고치기";
+    } else {
+      reviewButton.textContent = "리뷰";
+    }
+    reviewButton.addEventListener("click", function () {
+      openMenuReview(menu, item);
+    });
+
+    top.append(nameText, info, reviewButton);
+    item.append(top);
+
+    // 아랫줄: 메뉴 한 줄 평들 (최신순)
+    const comments = menu.menu_reviews.filter(function (review) {
+      return review.comment;
+    });
+    comments.sort(function (a, b) {
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    comments.forEach(function (review) {
+      const comment = document.createElement("p");
+      comment.className = "menu-comment";
+      comment.textContent = "\"" + review.comment + "\" - " + review.user_name;
+      item.append(comment);
+    });
+
+    menuList.append(item);
+  });
+}
+
+// 30. 메뉴 추가 칸 열고 닫기
+menuAddToggle.addEventListener("click", function () {
+  menuAddForm.hidden = false;
+  menuNameInput.focus();
+});
+
+cancelMenuButton.addEventListener("click", function () {
+  menuNameInput.value = "";
+  menuPriceInput.value = "";
+  menuAddForm.hidden = true;
+});
+
+// 31. 메뉴 추가하기
+saveMenuButton.addEventListener("click", async function () {
+  const menuName = menuNameInput.value.trim();
+  const priceText = menuPriceInput.value.trim();
+  const userName = userNameInput.value.trim();
+
+  if (menuName === "") {
+    alert("메뉴 이름을 적어 주세요!");
+    return;
+  }
+  if (userName === "") {
+    alert("위쪽 '내 이름(닉네임)' 칸에 이름을 먼저 적어 주세요!");
+    userNameInput.focus();
+    return;
+  }
+
+  let price = null;
+  if (priceText !== "") {
+    price = Number(priceText);
+  }
+
+  const { error } = await db.from("menus").insert({
+    restaurant_id: selectedRestaurant.id,
+    name: menuName,
+    price: price,
+    created_by: userName
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      alert("이 가게에 같은 이름의 메뉴가 이미 있어요!");
+    } else {
+      alert("메뉴를 추가하지 못했어요. 다시 시도해 주세요.");
+    }
+    console.log("메뉴 추가 실패:", error);
+    return;
+  }
+
+  rememberName(userName);
+  menuNameInput.value = "";
+  menuPriceInput.value = "";
+  alert(menuName + " 메뉴를 추가했어요! 🍲");
+
+  const data = await loadRestaurants();
+  const updated = data.find(function (restaurant) {
+    return restaurant.id === selectedRestaurant.id;
+  });
+  showDetail(updated, cameFromSearch);
+});
+
+// 32. 메뉴 리뷰 칸 열기 (누른 메뉴 아래로 옮겨 가기)
+function openMenuReview(menu, item) {
+  selectedMenu = menu;
+
+  const myName = userNameInput.value.trim();
+  const mine = menu.menu_reviews.find(function (review) {
+    return review.user_name === myName;
+  });
+
+  if (mine) {
+    menuScore = mine.score;
+    menuReviewComment.value = mine.comment || "";
+    saveMenuReviewButton.textContent = "리뷰 고치기";
+  } else {
+    menuScore = 0;
+    menuReviewComment.value = "";
+    saveMenuReviewButton.textContent = "리뷰 남기기";
+  }
+  paintStars(menuStarButtons, menuScore);
+
+  item.append(menuReviewForm);
+  menuReviewForm.hidden = false;
+}
+
+// 33. 메뉴 리뷰 별 누르기
+menuStarButtons.forEach(function (star) {
+  star.addEventListener("click", function () {
+    menuScore = Number(star.dataset.score);
+    paintStars(menuStarButtons, menuScore);
+  });
+});
+
+cancelMenuReviewButton.addEventListener("click", function () {
+  menuReviewForm.hidden = true;
+});
+
+// 34. 메뉴 리뷰 남기기
+saveMenuReviewButton.addEventListener("click", async function () {
+  const userName = userNameInput.value.trim();
+
+  if (userName === "") {
+    alert("위쪽 '내 이름(닉네임)' 칸에 이름을 먼저 적어 주세요!");
+    userNameInput.focus();
+    return;
+  }
+  if (menuScore === 0) {
+    alert("별을 1개 이상 눌러 주세요!");
+    return;
+  }
+
+  const { error } = await db.from("menu_reviews").upsert(
+    {
+      menu_id: selectedMenu.id,
+      user_name: userName,
+      score: menuScore,
+      comment: menuReviewComment.value.trim() || null
+    },
+    { onConflict: "menu_id,user_name" }
+  );
+
+  if (error) {
+    alert("메뉴 리뷰를 저장하지 못했어요. 다시 시도해 주세요.");
+    console.log("메뉴 리뷰 저장 실패:", error);
+    return;
+  }
+
+  rememberName(userName);
+  alert(selectedMenu.name + " 리뷰를 남겼어요! ⭐");
+
+  const data = await loadRestaurants();
+  const updated = data.find(function (restaurant) {
+    return restaurant.id === selectedRestaurant.id;
+  });
+  showDetail(updated, cameFromSearch);
+});
+
+// 35. 화면 크기가 바뀌면 지도 크기 다시 맞추기
+window.addEventListener("resize", function () {
+  map.relayout();
 });
 
 loadRestaurants();
