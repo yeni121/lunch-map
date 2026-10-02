@@ -80,6 +80,8 @@ const saveEditButton = document.querySelector(".save-edit");
 const cancelEditButton = document.querySelector(".cancel-edit");
 const reviewCommentInput = document.querySelector("#review-comment");
 const reviewList = document.querySelector(".review-list");
+const kakaoLink = document.querySelector(".kakao-link");
+const blogLink = document.querySelector(".blog-link");
 const menuAddToggle = document.querySelector(".menu-add-toggle");
 const menuAddForm = document.querySelector(".menu-add-form");
 const menuNameInput = document.querySelector("#menu-name");
@@ -178,6 +180,14 @@ function showDetail(restaurant, fromSearch) {
   detailInfo.textContent = restaurant.category;
   detailRating.textContent = ratingText(restaurant.ratings);
   renderReviews(restaurant);
+
+  // 🆕 더 알아보기: 카카오맵(영업시간 · 메뉴) · 블로그 리뷰 링크
+  if (restaurant.kakao_url) {
+    kakaoLink.href = restaurant.kakao_url.replace("http://", "https://");
+  } else {
+    kakaoLink.href = "https://map.kakao.com/link/search/" + encodeURIComponent(restaurant.name);
+  }
+  blogLink.href = "https://search.naver.com/search.naver?where=blog&query=" + encodeURIComponent(restaurant.name + " 송파");
   renderMenus(restaurant);
   menuAddForm.hidden = true;
 
