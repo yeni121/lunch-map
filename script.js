@@ -10,6 +10,8 @@ const map = new kakao.maps.Map(mapArea, {
   center: center,
   level: 3
 });
+// 🆕 지도 오른쪽 아래에 확대(+) · 축소(-) 버튼 달기
+map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.BOTTOMRIGHT);
 
 // 3. 회사 핀 꽂기 (맛집 핀과 다르게!)
 const companySvg =
