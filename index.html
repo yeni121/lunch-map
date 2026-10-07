@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>오늘 뭐 먹지?</title>
-    <!-- 🎀 글꼴: 제목은 동글동글한 Jua, 본문은 읽기 편한 Pretendard -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+    <!-- 🎀 글꼴 후보들 (어떤 걸 쓸지는 style.css 의 --font-title, --font-body 에서 골라요) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Do+Hyeon&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+    <!-- (나눔스퀘어라운드는 굵기별로 이름이 달라서, style.css 맨 위에서 한 이름으로 묶어 불러와요) -->
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:,">
 </head>
@@ -69,6 +70,15 @@
 
             <!-- 💬 리뷰 탭: 리뷰 목록 + 별점 남기기 -->
             <div class="detail-panel" data-panel="review">
+            <!-- 🆕 이미 별점을 줬으면: 입력 칸 대신 "내가 남긴 별점" 카드 (리뷰 목록 위에) -->
+            <div class="my-rating" hidden>
+                <div class="my-rating-top">
+                    <strong>⭐ 내가 남긴 별점</strong>
+                    <button class="my-rating-edit">고치기</button>
+                </div>
+                <p class="my-rating-stars"></p>
+                <p class="my-rating-comment"></p>
+            </div>
             <div class="review-list"></div>
             <div class="rating-form">
                 <label for="user-name">내 이름(닉네임)</label>
@@ -82,7 +92,10 @@
                 </div>
                 <label for="review-comment">한 줄 평 (선택)</label>
                 <input id="review-comment" type="text" maxlength="50" placeholder="분위기나 서비스는 어땠나요?">
-                <button class="submit-rating">별점 남기기</button>
+                <div class="edit-buttons">
+                    <button class="submit-rating">별점 남기기</button>
+                    <button class="cancel-edit cancel-rating" hidden>취소</button>
+                </div>
             </div>
             </div>
 

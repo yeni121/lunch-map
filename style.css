@@ -1,3 +1,30 @@
+/* 🔤 나눔스퀘어라운드: 굵기별 파일 4개를 "Nanum Round" 한 이름으로 묶기
+   (이렇게 하면 font-weight: bold 를 썼을 때 진짜 굵은 글꼴이 나와요) */
+@font-face {
+  font-family: "Nanum Round";
+  font-weight: 300;
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundL.woff2) format("woff2"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundL.woff) format("woff");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nanum Round";
+  font-weight: 400;
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundR.woff2) format("woff2"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundR.woff) format("woff");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nanum Round";
+  font-weight: 700;
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundB.woff2) format("woff2"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundB.woff) format("woff");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nanum Round";
+  font-weight: 800;
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundEB.woff2) format("woff2"), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundEB.woff) format("woff");
+  font-display: swap;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -950,12 +977,22 @@ h1 {
   --round: 18px;          /* 카드 모서리 */
   --shadow: 0 4px 16px rgba(234, 80, 121, 0.10);
   --shadow-up: 0 8px 22px rgba(234, 80, 121, 0.18);
+
+  /* 🔤 글꼴 (아래 후보 중에 골라서 두 줄을 바꿔 보세요!)
+     ① 지금         title: "Jua"               body: "Pretendard"
+     ② 나눔스퀘어라운드 title: "Nanum Round"       body: "Nanum Round"
+     ④ 고운돋움       title: "Gowun Dodum"       body: "Gowun Dodum"
+     ⑤ 도현         title: "Do Hyeon"          body: "Pretendard"
+     ④+⑤ 섞기       title: "Do Hyeon"          body: "Gowun Dodum"          */
+  --font-title: "Do Hyeon";  /* 제목 · 버튼 · 가게 이름 */
+  --font-body: "Pretendard";   /* 설명 · 한 줄 평 */
+  --title-weight: normal;          /* 제목 굵기: 나눔스퀘어라운드는 800, 나머지 글꼴은 normal */
 }
 
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Pretendard", -apple-system, sans-serif;
+  font-family: var(--font-body), "Pretendard", -apple-system, sans-serif;
 }
 
 /* 제목 · 탭 · 버튼은 동글동글한 글꼴 */
@@ -964,8 +1001,8 @@ h1, h2,
 .restaurant-item strong,
 .submit-add, .random-button, .random-go, .random-again,
 .slot-name {
-  font-family: "Jua", "Pretendard", sans-serif;
-  font-weight: normal;
+  font-family: var(--font-title), "Pretendard", sans-serif;
+  font-weight: var(--title-weight);
 }
 
 button, input, select {
@@ -1048,7 +1085,7 @@ button, input, select {
 .tab[aria-selected="true"] {
   background-color: white;
   color: var(--pink-dark);
-  font-weight: normal;
+  font-weight: var(--title-weight);
   box-shadow: 0 2px 8px rgba(234, 80, 121, 0.18);
 }
 
@@ -1298,7 +1335,7 @@ select:focus {
 }
 
 .detail-panel .rating-form {
-  margin-top: 16px;
+  margin: 16px 0;
   padding: 16px;
   border-top: none;
   border-radius: 16px;
@@ -1309,6 +1346,50 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* --- 🆕 내가 남긴 별점 카드 --- */
+.my-rating {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background-color: var(--pink-light);
+}
+
+.my-rating-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.my-rating-edit {
+  background-color: white;
+  color: var(--pink-dark);
+  border: 1px solid var(--pink-soft);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.my-rating-edit:hover {
+  border-color: var(--pink);
+}
+
+.my-rating-stars {
+  margin: 8px 0 0;
+  color: var(--pink);
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.my-rating-comment {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+.rating-form .edit-buttons .submit-rating {
+  flex: 1;
 }
 
 /* --- 🆕 메뉴 [수정] [삭제] (작은 글자 버튼) --- */

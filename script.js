@@ -65,6 +65,12 @@ const userNameInput = document.querySelector("#user-name");
 const starButtons = document.querySelectorAll(".detail-area .rating-form .star");
 const addStarButtons = document.querySelectorAll(".add-form .star");
 const submitRatingButton = document.querySelector(".submit-rating");
+const ratingForm = document.querySelector(".detail-area .rating-form");   // 🆕 별점 남기기 칸
+const cancelRatingButton = document.querySelector(".cancel-rating");
+const myRatingBox = document.querySelector(".my-rating");                 // 🆕 내가 남긴 별점 카드
+const myRatingStars = document.querySelector(".my-rating-stars");
+const myRatingComment = document.querySelector(".my-rating-comment");
+const myRatingEditButton = document.querySelector(".my-rating-edit");
 const addArea = document.querySelector(".add-area");
 const addBackButton = document.querySelector(".add-back-button");
 const searchInput = document.querySelector("#search-input");
@@ -210,11 +216,24 @@ function showDetail(restaurant, fromSearch) {
     selectedScore = myRating.score;
     reviewCommentInput.value = myRating.comment || "";
     submitRatingButton.textContent = "별점 고치기";
+
+    // 🆕 이미 남겼으면: 입력 칸은 숨기고 "내가 남긴 별점" 카드 보여주기
+    myRatingStars.textContent = "★".repeat(myRating.score) + "☆".repeat(5 - myRating.score) + "  " + myRating.score + "점";
+    myRatingComment.textContent = myRating.comment ? "\"" + myRating.comment + "\"" : "";
+    myRatingComment.hidden = !myRating.comment;
+    myRatingBox.hidden = false;
+    ratingForm.hidden = true;
   } else {
     selectedScore = 0;
     reviewCommentInput.value = "";
     submitRatingButton.textContent = "별점 남기기";
+
+    // 아직 안 남겼으면: 입력 칸 바로 보여주기
+    myRatingBox.hidden = true;
+    ratingForm.hidden = false;
   }
+  cancelRatingButton.hidden = true;
+  reviewList.after(ratingForm); // 입력 칸은 원래 자리(리뷰 목록 아래)로
   paintStars();
 
   detailName.textContent = restaurant.name;
@@ -286,6 +305,18 @@ starButtons.forEach(function (star) {
     selectedScore = Number(star.dataset.score);
     paintStars();
   });
+});
+
+// 10-1. 🆕 [고치기] 누르면 입력 칸 열기, [취소] 누르면 다시 카드로
+myRatingEditButton.addEventListener("click", function () {
+  myRatingBox.after(ratingForm); // 카드가 있던 자리에서 바로 고치기 (목록 위)
+  myRatingBox.hidden = true;
+  ratingForm.hidden = false;
+  cancelRatingButton.hidden = false;
+});
+
+cancelRatingButton.addEventListener("click", function () {
+  showDetail(selectedRestaurant, cameFromSearch); // 원래대로 (고치던 별은 되돌려요)
 });
 
 // 11. 별점 남기기 버튼
@@ -1368,6 +1399,14 @@ function openRandomPick() {
   // 골라보기에서 고른 음식 종류 + 상황 안에서만 뽑아요
   randomCandidates = restaurants.filter(matchesFilter);
 
+  // 🆕 "전체"일 때는 카페·디저트는 빼요 (밥이 아니니까!)
+  //     카페·디저트를 직접 골랐을 때는 카페 중에서 뽑아요
+  if (selectedCategory === "전체") {
+    randomCandidates = randomCandidates.filter(function (restaurant) {
+      return categoryOf(restaurant) !== "카페·디저트";
+    });
+  }
+
   if (randomCandidates.length === 0) {
     alert("지금 고른 조건에 맞는 맛집이 없어요. 골라보기를 바꿔 보세요!");
     return;
@@ -1384,7 +1423,7 @@ function openRandomPick() {
     }
   });
   if (scopeParts.length === 0) {
-    randomScope.textContent = "등록된 맛집 " + randomCandidates.length + "곳 중에서 골라요";
+    randomScope.textContent = "밥집 " + randomCandidates.length + "곳 중에서 골라요 (카페 제외)";
   } else {
     randomScope.textContent = scopeParts.join(" · ") + " " + randomCandidates.length + "곳 중에서 골라요";
   }
