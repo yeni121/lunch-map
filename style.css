@@ -716,6 +716,90 @@ h1 {
   }
 }
 
+/* 🆕 상황 골라보기 버튼 줄 */
+.situation-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.situation-chip {
+  background-color: white;
+  color: #363636;
+  border: 1px solid #dddddd;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.situation-chip:hover {
+  border-color: #ea5079;
+}
+
+.situation-chip[aria-pressed="true"] {
+  background-color: #c9335d;
+  border-color: #c9335d;
+  color: white;
+}
+
+/* 🆕 카드 안 상황 꼬리표 */
+.card-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.card-tag {
+  background-color: #fdf0f3;
+  color: #c9335d;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* 🆕 상황 태그 체크박스 (추가 칸, 수정 칸) */
+.tag-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tag-choices legend {
+  width: 100%;
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.tag-choices label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: white;
+  border: 1px solid #dddddd;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tag-choices label:has(input:checked) {
+  border-color: #c9335d;
+  background-color: #fdf0f3;
+  color: #c9335d;
+}
+
+.tag-choices input {
+  margin: 0;
+  padding: 0;
+  accent-color: #c9335d;
+}
+
 @media (max-width: 768px) {
   body {
     height: auto;
