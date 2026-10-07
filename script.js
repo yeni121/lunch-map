@@ -202,6 +202,7 @@ function showDetail(restaurant, fromSearch) {
 
   listArea.hidden = true;
   addArea.hidden = true;
+  newArea.hidden = true;
   detailArea.hidden = false;
   editForm.hidden = true;
 
@@ -279,6 +280,7 @@ async function loadRestaurants() {
 
   // 옛날 목록과 핀 지우기 (새로 그리기 전에!)
   listArea.innerHTML = "";
+  listArea.append(makeTabs("list")); // 🆕 맨 위 탭 줄
   markers.forEach(function (marker) {
     marker.setMap(null);
   });
@@ -487,16 +489,23 @@ async function loadRestaurants() {
 }
 // 13. 맛집 추가 칸 열고 닫기
 function openAddArea() {
+  addFromNew = false;
   listArea.hidden = true;
   detailArea.hidden = true;
+  newArea.hidden = true;
   addArea.hidden = false;
   searchInput.focus();
 }
 
 addBackButton.addEventListener("click", function () {
   addArea.hidden = true;
-  listArea.hidden = false;
   clearSearchMarker();
+  // 🆕 새로운 가게 탭에서 왔으면 그 탭으로 돌아가기
+  if (addFromNew) {
+    showNewTab();
+  } else {
+    listArea.hidden = false;
+  }
 });
 
 // 14. 카카오 분류를 우리 음식 종류로 바꾸기
@@ -1374,5 +1383,215 @@ document.addEventListener("keydown", function (event) {
     closeRandomPick();
   }
 });
+
+// 37. 🆕 새로운 가게 탭 (근처인데 아직 우리 목록에 없는 식당)
+const newArea = document.querySelector(".new-area");
+const newTabs = document.querySelector(".new-tabs");
+const newList = document.querySelector(".new-list");
+const NEW_PAGE_SIZE = 10; // 한 번에 보여줄 개수
+
+let nearbyPlaces = null; // 카카오에서 받아 온 근처 식당 (한 번만 받아 와요)
+let newPlaces = [];      // 그중 우리 목록에 없는 곳
+let newShownCount = 0;   // 화면에 보여준 개수
+let addFromNew = false;  // 새로운 가게 탭에서 [우리 목록에 추가]로 왔는지
+
+// 탭 줄 만들기: [📋 우리 맛집] [🆕 새로운 가게]
+function makeTabs(activeTab) {
+  const tabs = document.createElement("div");
+  tabs.className = "tabs";
+  tabs.setAttribute("role", "tablist");
+
+  const listTab = document.createElement("button");
+  listTab.className = "tab";
+  listTab.textContent = "📋 우리 맛집";
+  listTab.setAttribute("role", "tab");
+  listTab.setAttribute("aria-selected", String(activeTab === "list"));
+  listTab.addEventListener("click", showListTab);
+
+  const newTab = document.createElement("button");
+  newTab.className = "tab";
+  newTab.textContent = "🆕 새로운 가게";
+  newTab.setAttribute("role", "tab");
+  newTab.setAttribute("aria-selected", String(activeTab === "new"));
+  newTab.addEventListener("click", showNewTab);
+
+  tabs.append(listTab, newTab);
+  return tabs;
+}
+newTabs.append(makeTabs("new"));
+
+// 우리 맛집 탭 보기
+function showListTab() {
+  newArea.hidden = true;
+  listArea.hidden = false;
+  clearSearchMarker();
+}
+
+// 새로운 가게 탭 보기
+function showNewTab() {
+  listArea.hidden = true;
+  detailArea.hidden = true;
+  addArea.hidden = true;
+  newArea.hidden = false;
+  clearSearchMarker();
+
+  if (nearbyPlaces === null) {
+    newList.innerHTML = '<p class="filter-empty">근처 식당을 찾는 중이에요… 🔍</p>';
+    fetchNearbyPlaces();
+  } else {
+    renderNewPlaces();
+  }
+}
+
+// 카카오에 "회사 1km 안 식당, 가까운 순" 물어보기 (한 페이지 15곳 × 최대 3페이지)
+function fetchNearbyPlaces() {
+  let collected = [];
+  places.categorySearch("FD6", function (result, status, pagination) {
+    if (status === kakao.maps.services.Status.OK) {
+      collected = collected.concat(result);
+      if (pagination.hasNextPage) {
+        pagination.nextPage(); // 다음 페이지도 받으면 이 함수가 한 번 더 불려요
+        return;
+      }
+    }
+
+    // 카카오가 한 곳도 못 찾았거나 오류가 났으면 → 다음에 탭을 누를 때 다시 물어봐요
+    if (collected.length === 0) {
+      console.log("근처 식당 불러오기 실패:", status);
+      newList.innerHTML = '<p class="filter-empty">근처 식당을 불러오지 못했어요. 탭을 다시 눌러 주세요.</p>';
+      return;
+    }
+
+    nearbyPlaces = collected;
+    renderNewPlaces();
+  }, {
+    location: center,
+    radius: 1000,
+    sort: kakao.maps.services.SortBy.DISTANCE
+  });
+}
+
+// 우리 목록에 없는 곳만 골라서 그리기
+function renderNewPlaces() {
+  const ourIds = restaurants.map(function (restaurant) {
+    return String(restaurant.kakao_place_id);
+  });
+  newPlaces = nearbyPlaces.filter(function (place) {
+    return !ourIds.includes(String(place.id));
+  });
+
+  newList.innerHTML = "";
+  newShownCount = 0;
+
+  if (newPlaces.length === 0) {
+    newList.innerHTML = '<p class="filter-empty">근처 식당을 우리가 다 등록했어요! 🎉</p>';
+    return;
+  }
+
+  const countText = document.createElement("p");
+  countText.className = "new-count";
+  countText.textContent = "아직 안 가 본 곳 " + newPlaces.length + "곳";
+  newList.append(countText);
+
+  showMoreNewPlaces();
+}
+
+// 10곳씩 보여주기
+function showMoreNewPlaces() {
+  const oldMoreButton = newList.querySelector(".more-button");
+  if (oldMoreButton) {
+    oldMoreButton.remove();
+  }
+
+  const nextPlaces = newPlaces.slice(newShownCount, newShownCount + NEW_PAGE_SIZE);
+  nextPlaces.forEach(function (place) {
+    newList.append(makeNewCard(place));
+  });
+  newShownCount = newShownCount + nextPlaces.length;
+
+  if (newShownCount < newPlaces.length) {
+    const moreButton = document.createElement("button");
+    moreButton.className = "more-button";
+    moreButton.textContent = "더보기 (" + (newPlaces.length - newShownCount) + "곳 더)";
+    moreButton.addEventListener("click", showMoreNewPlaces);
+    newList.append(moreButton);
+  }
+}
+
+// 새로운 가게 카드 하나 만들기
+function makeNewCard(place) {
+  const item = document.createElement("div");
+  item.className = "search-result new-card";
+
+  const nameText = document.createElement("strong");
+  nameText.textContent = place.place_name;
+
+  // 예: "국밥 · 🚶 걸어서 약 5분 (320m)"  (어른 걸음 1분 ≈ 67m)
+  const kind = place.category_name.split(" > ").pop();
+  const minutes = Math.max(1, Math.round(Number(place.distance) / 67));
+  const infoText = document.createElement("p");
+  infoText.textContent = kind + " · 🚶 걸어서 약 " + minutes + "분 (" + place.distance + "m)";
+
+  // 눌렀을 때만 나오는 버튼 2개
+  const actions = document.createElement("div");
+  actions.className = "new-actions";
+  actions.hidden = true;
+
+  const kakaoButton = document.createElement("a");
+  kakaoButton.className = "new-kakao";
+  kakaoButton.textContent = "카카오맵에서 보기 ↗";
+  kakaoButton.href = place.place_url.replace("http://", "https://");
+  kakaoButton.target = "_blank";
+  kakaoButton.rel = "noopener";
+
+  const addButton = document.createElement("button");
+  addButton.className = "new-add";
+  addButton.textContent = "+ 우리 목록에 추가";
+  addButton.addEventListener("click", function (event) {
+    event.stopPropagation();
+    addNewPlace(place);
+  });
+  kakaoButton.addEventListener("click", function (event) {
+    event.stopPropagation();
+  });
+
+  actions.append(kakaoButton, addButton);
+  item.append(nameText, infoText, actions);
+
+  // 카드를 누르면: 지도에 분홍 별 핀 + 버튼 열기 (한 번에 하나만)
+  item.addEventListener("click", function () {
+    newList.querySelectorAll(".new-card").forEach(function (card) {
+      card.classList.remove("on");
+      card.querySelector(".new-actions").hidden = true;
+    });
+    item.classList.add("on");
+    actions.hidden = false;
+
+    const position = new kakao.maps.LatLng(place.y, place.x);
+    clearSearchMarker();
+    searchMarker = new kakao.maps.Marker({
+      position: position,
+      map: map,
+      image: pinkStarImage
+    });
+    map.panTo(position);
+  });
+
+  return item;
+}
+
+// [+ 우리 목록에 추가] → 맛집 추가 화면에서 이 가게를 미리 골라 두기
+function addNewPlace(place) {
+  openAddArea();
+  addFromNew = true;
+
+  searchInput.value = place.place_name;
+  searchResults.innerHTML = "";
+  foundPlaces = [place];
+  shownCount = 0;
+  showMorePlaces();
+  selectPlace(place, searchResults.querySelector(".search-result"));
+  addUserNameInput.focus();
+}
 
 loadRestaurants();
