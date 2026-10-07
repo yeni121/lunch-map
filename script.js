@@ -134,6 +134,12 @@ let menuScore = 0;              // 메뉴 리뷰에서 고른 별 개수
 // 우리 사이트의 음식 종류 7가지 (기획서 규칙)
 const CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페·디저트", "기타"];
 
+// 🎀 음식 종류마다 카드에 붙일 그림
+const CATEGORY_EMOJI = {
+  "한식": "🍚", "중식": "🥟", "일식": "🍣", "양식": "🍝",
+  "분식": "🍢", "카페·디저트": "☕", "기타": "🍴"
+};
+
 // 🆕 상황 태그 2가지 (저장하는 글자 → 화면에 보여줄 글자)
 const SITUATIONS = [
   { value: "점심", label: "🍱 점심" },
@@ -359,11 +365,7 @@ async function loadRestaurants() {
 
     listActions.append(topAddButton, randomButton);
     listArea.append(listActions);
-    // 🆕 맛집 추가 안내 문구
-    const addHint = document.createElement("p");
-    addHint.className = "list-hint";
-    addHint.textContent = "💡 지도에서 가게를 눌러 추가하고 싶다면, 먼저 위의 [+ 맛집 추가]를 눌러 주세요!";
-    listArea.append(addHint);
+    // (맛집 추가 안내 문구는 맨 위 제목 밑으로 옮겼어요 → index.html)
 
     // 🆕 음식 종류 골라보기
     const filterSelect = document.createElement("select");
@@ -452,13 +454,29 @@ async function loadRestaurants() {
     const item = document.createElement("div");
     item.className = "restaurant-item";
 
+    // 🎀 왼쪽 동그라미 그림 (음식 종류)
+    const icon = document.createElement("span");
+    icon.className = "card-icon";
+    icon.textContent = CATEGORY_EMOJI[categoryOf(restaurant)];
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+
     const nameText = document.createElement("strong");
     nameText.textContent = restaurant.name;
 
+    // 🎀 별점은 분홍색으로 눈에 띄게, 나머지는 작은 회색 글자
     const infoText = document.createElement("p");
-    infoText.textContent = restaurant.category + " · " + ratingText(restaurant.ratings) + " · 🚶 " + walkMinutes(restaurant.distance) + "분";
+    const ratingSpan = document.createElement("span");
+    ratingSpan.className = restaurant.ratings.length > 0 ? "card-rating" : "card-rating none";
+    ratingSpan.textContent = ratingText(restaurant.ratings);
+    infoText.append(
+      ratingSpan,
+      " · " + restaurant.category + " · 🚶 " + walkMinutes(restaurant.distance) + "분"
+    );
 
-    item.append(nameText, infoText);
+    body.append(nameText, infoText);
+    item.append(icon, body);
 
     // 🆕 상황 태그가 있으면 카드에 작은 꼬리표로 보여주기
     const labels = situationLabels(restaurant);
@@ -471,7 +489,7 @@ async function loadRestaurants() {
         tag.textContent = label;
         tagLine.append(tag);
       });
-      item.append(tagLine);
+      body.append(tagLine);
     }
 
     listArea.append(item);
@@ -481,16 +499,33 @@ async function loadRestaurants() {
       showDetail(restaurant);
     });
 
-    // 지도에 핀 추가
-    const marker = new kakao.maps.Marker({
+    // 🎀 지도에 분홍 별점 핀 추가 (평가 없으면 🍴, 마우스를 올리면 가게 이름)
+    const pin = document.createElement("div");
+    pin.className = "map-pin";
+    const pinScore = document.createElement("span");
+    if (restaurant.ratings.length > 0) {
+      pinScore.textContent = "★ " + averageScore(restaurant.ratings).toFixed(1);
+    } else {
+      pinScore.textContent = "🍴";
+      pin.classList.add("no-rating");
+    }
+    const pinName = document.createElement("span");
+    pinName.className = "map-pin-name";
+    pinName.textContent = restaurant.name;
+    pin.append(pinScore, pinName);
+    pin.addEventListener("click", function () {
+      showDetail(restaurant);
+    });
+
+    const marker = new kakao.maps.CustomOverlay({
       position: new kakao.maps.LatLng(restaurant.lat, restaurant.lng),
+      content: pin,
+      yAnchor: 1,
+      clickable: true,
+      zIndex: 20, // 회사 핀(10)보다 위에 (가게 정보가 더 중요하니까)
       map: map
     });
     markers.push(marker);
-
-    kakao.maps.event.addListener(marker, "click", function () {
-      showDetail(restaurant);
-    });
   });
     // 🆕 목록 더보기 버튼
   // 🆕 페이지 넘기기 버튼

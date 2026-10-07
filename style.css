@@ -977,3 +977,421 @@ h1 {
   white-space: nowrap;
   transform: translateY(-50px);
 }
+
+/* ================================================================
+   🎀 디자인 업그레이드 (귀엽게!)
+   위에 있는 기본 모양을, 여기서 한 번에 덮어써서 꾸며요.
+   색은 :root 에 이름을 붙여 두고 꺼내 써요 (바꾸고 싶으면 여기만!)
+   ================================================================ */
+:root {
+  --pink: #ea5079;        /* 회사 분홍 */
+  --pink-dark: #c9335d;   /* 버튼용 진한 분홍 (흰 글자가 잘 보여요) */
+  --pink-light: #fdf0f3;  /* 아주 연한 분홍 */
+  --pink-soft: #ffe3ea;   /* 연분홍 */
+  --text: #363636;
+  --text-soft: #8a7a7f;   /* 따뜻한 회색 */
+  --line: #f3e3e8;        /* 분홍빛 테두리 */
+  --bg: #fdfcfc;
+  --round: 18px;          /* 카드 모서리 */
+  --shadow: 0 4px 16px rgba(234, 80, 121, 0.10);
+  --shadow-up: 0 8px 22px rgba(234, 80, 121, 0.18);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Pretendard", -apple-system, sans-serif;
+}
+
+/* 제목 · 탭 · 버튼은 동글동글한 글꼴 */
+h1, h2,
+.tab,
+.restaurant-item strong,
+.submit-add, .random-button, .random-go, .random-again,
+.slot-name {
+  font-family: "Jua", "Pretendard", sans-serif;
+  font-weight: normal;
+}
+
+button, input, select {
+  font-family: inherit;
+}
+
+/* --- 맨 위 --- */
+.top-bar {
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 14px 24px;
+  border-bottom: none;
+  box-shadow: 0 2px 12px rgba(234, 80, 121, 0.08);
+}
+
+.brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: var(--pink-soft);
+  font-size: 28px;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: 30px;
+  color: var(--pink);
+}
+
+.top-hint {
+  margin: 2px 0 0;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.top-hint b {
+  color: var(--pink-dark);
+}
+
+/* --- 큰 칸들 --- */
+.content {
+  gap: 20px;
+  padding: 20px;
+}
+
+.map-area {
+  border-radius: 28px;
+  border: 4px solid white;
+  box-shadow: var(--shadow);
+}
+
+.list-area,
+.detail-area,
+.add-area,
+.new-area {
+  padding: 4px 6px 16px;
+}
+
+/* --- 탭: 알약 모양 스위치 --- */
+.tabs {
+  gap: 4px;
+  padding: 4px;
+  border-bottom: none;
+  border-radius: 999px;
+  background-color: var(--pink-soft);
+}
+
+.tab {
+  border-bottom: none;
+  border-radius: 999px;
+  padding: 9px 4px;
+  font-size: 16px;
+  color: var(--text-soft);
+}
+
+.tab[aria-selected="true"] {
+  background-color: white;
+  color: var(--pink-dark);
+  font-weight: normal;
+  box-shadow: 0 2px 8px rgba(234, 80, 121, 0.18);
+}
+
+/* --- 버튼: 동글동글 + 살짝 떠오르기 --- */
+.submit-add,
+.random-button,
+.submit-rating,
+.search-button,
+.save-edit,
+.cancel-edit,
+.random-go,
+.random-again,
+.more-button,
+.pager button,
+.new-kakao,
+.new-add,
+.manual-open,
+.menu-add-toggle {
+  border-radius: 999px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.submit-add,
+.random-button {
+  padding: 12px;
+  font-size: 17px;
+}
+
+.submit-add:hover,
+.random-button:hover,
+.submit-rating:hover,
+.random-go:hover,
+.new-add:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-up);
+}
+
+.random-button {
+  background-color: white;
+  border: 2px solid var(--pink-soft);
+}
+
+.random-button:hover {
+  background-color: var(--pink-light);
+  border-color: var(--pink);
+}
+
+/* --- 골라보기 --- */
+.situation-chip {
+  border-color: var(--line);
+  padding: 7px 14px;
+}
+
+.category-filter,
+.rating-form input,
+.rating-form select,
+.search-row input,
+.edit-form input,
+.edit-form select,
+.menu-add-form input,
+.menu-review-form input {
+  border-color: var(--line);
+  border-radius: 12px;
+}
+
+.category-filter:focus,
+input:focus,
+select:focus {
+  outline: 2px solid var(--pink-soft);
+  border-color: var(--pink);
+}
+
+/* --- 맛집 카드: 왼쪽 그림 + 오른쪽 글자 --- */
+.restaurant-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: var(--round);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.restaurant-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-up);
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--pink-light);
+  font-size: 24px;
+}
+
+.card-body {
+  min-width: 0;
+}
+
+.restaurant-item strong {
+  display: block;
+  font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.restaurant-item p {
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.card-rating {
+  color: var(--pink-dark);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.card-rating.none {
+  color: var(--text-soft);
+  font-weight: normal;
+  font-size: 13px;
+}
+
+/* --- 검색 결과 · 새로운 가게 카드 --- */
+.search-result {
+  border: 2px solid transparent;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.search-result:hover,
+.search-result.on {
+  border-color: var(--pink);
+}
+
+/* --- 자세히 보기 --- */
+.detail-name {
+  font-size: 28px;
+  margin: 12px 0 4px;
+}
+
+.back-button {
+  font-size: 14px;
+}
+
+.back-button:hover {
+  color: var(--pink-dark);
+}
+
+.review-item,
+.menu-item,
+.info-card,
+.edit-form,
+.menu-add-form,
+.empty-state {
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.info-card:hover {
+  outline: 2px solid var(--pink);
+}
+
+.rating-form,
+.review-list,
+.more-info,
+.menu-section {
+  border-top: 2px dashed var(--line);
+}
+
+.star.on {
+  color: var(--pink);
+}
+
+.star:hover {
+  transform: scale(1.15);
+}
+
+/* --- 슬롯머신 창 --- */
+.random-box {
+  border-radius: 28px;
+}
+
+.random-box h2 {
+  font-size: 28px;
+}
+
+.slot-window {
+  border-radius: 20px;
+  border-color: var(--pink-soft);
+}
+
+/* --- 지도 위 분홍 별점 핀 --- */
+.map-pin {
+  position: relative;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background-color: var(--pink);
+  border: 2px solid white;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(201, 51, 93, 0.35);
+  cursor: pointer;
+  transform: translateY(-8px);
+  transition: transform 0.15s;
+}
+
+/* 핀 아래 뾰족한 꼬리 */
+.map-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--pink);
+}
+
+.map-pin.no-rating {
+  background-color: white;
+  border-color: var(--pink);
+  color: var(--pink-dark);
+}
+
+.map-pin.no-rating::after {
+  border-top-color: var(--pink);
+}
+
+.map-pin:hover {
+  transform: translateY(-11px) scale(1.08);
+  z-index: 10;
+}
+
+/* 마우스를 올리면 가게 이름 말풍선 */
+.map-pin-name {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 10px;
+  background-color: var(--text);
+  color: white;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.map-pin:hover .map-pin-name {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .restaurant-item,
+  .submit-add,
+  .random-button,
+  .map-pin {
+    transition: none;
+  }
+}
+
+/* --- 📱 휴대폰 --- */
+@media (max-width: 768px) {
+  .top-bar {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .brand-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 22px;
+  }
+
+  .top-bar h1 {
+    font-size: 24px;
+  }
+
+  .top-hint {
+    font-size: 12px;
+  }
+
+  .content {
+    padding: 12px 16px;
+  }
+
+  .map-area {
+    border-radius: 22px;
+  }
+}
