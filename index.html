@@ -123,6 +123,24 @@
             </div>
         </section>
     </main>
+
+    <!-- 🆕 오늘 뭐 먹지? 슬롯머신 창 -->
+    <div class="random-overlay" hidden>
+        <div class="random-box" role="dialog" aria-modal="true" aria-labelledby="random-title">
+            <button class="random-close" aria-label="닫기">✕</button>
+            <h2 id="random-title">🎲 오늘 뭐 먹지?</h2>
+            <p class="random-scope"></p>
+            <div class="slot-window">
+                <span class="slot-name"></span>
+            </div>
+            <p class="slot-info"></p>
+            <p class="random-question">오늘은 여기 어때요?</p>
+            <div class="random-buttons">
+                <button class="random-go">보러 가기</button>
+                <button class="random-again">🎲 다시 돌리기</button>
+            </div>
+        </div>
+    </div>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4b115a3683fbce125b2440b789997bf0&libraries=services"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
