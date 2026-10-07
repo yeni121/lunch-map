@@ -465,16 +465,6 @@ h1 {
   color: #888888;
   font-size: 13px;
 }
-.menu-review-button {
-  background-color: white;
-  color: #c9335d;
-  border: 1px solid #c9335d;
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
 .menu-comment {
   margin: 6px 0 0;
   padding-left: 10px;
@@ -483,41 +473,6 @@ h1 {
   font-size: 13px;
 }
 
-.menu-review-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #eeeeee;
-}
-
-.menu-review-form input {
-  padding: 8px 10px;
-  border: 1px solid #dddddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.save-menu-review {
-  flex: 1;
-  background-color: #c9335d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px;
-  cursor: pointer;
-}
-
-.cancel-menu-review {
-  flex: 1;
-  background-color: white;
-  color: #888888;
-  border: 1px solid #dddddd;
-  border-radius: 6px;
-  padding: 8px;
-  cursor: pointer;
-}
 /* 📱 휴대폰처럼 좁은 화면 (가로 768px 이하) */
 /* 🆕 더 알아보기 (카카오맵 · 블로그 리뷰 링크) */
 .more-info {
@@ -1153,8 +1108,7 @@ button, input, select {
 .search-row input,
 .edit-form input,
 .edit-form select,
-.menu-add-form input,
-.menu-review-form input {
+.menu-add-form input {
   border-color: var(--line);
   border-radius: 12px;
 }
@@ -1279,6 +1233,123 @@ select:focus {
 
 .star:hover {
   transform: scale(1.15);
+}
+
+/* --- 🎀 자세히 보기: 요약 줄 + 탭 --- */
+.detail-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.detail-info {
+  color: var(--text-soft);
+}
+
+.detail-meta .card-rating {
+  font-size: 16px;
+}
+
+.detail-actions .edit-button,
+.detail-actions .delete-button {
+  border-radius: 999px;
+  border-color: var(--line);
+  padding: 5px 12px;
+}
+
+.detail-tags {
+  margin-top: 8px;
+}
+
+.detail-tabs {
+  margin: 20px 0 14px;
+}
+
+.detail-tabs .tab {
+  font-size: 15px;
+}
+
+/* 탭 안에서는 칸마다 있던 점선 · 제목이 필요 없어요 */
+.detail-panel .review-list,
+.detail-panel .more-info,
+.detail-panel .menu-section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.detail-panel .more-info > strong,
+.detail-panel .menu-header strong {
+  display: none;
+}
+
+.detail-panel .menu-header {
+  justify-content: flex-end;
+}
+
+.detail-panel .rating-form {
+  margin-top: 16px;
+  padding: 16px;
+  border-top: none;
+  border-radius: 16px;
+  background-color: white;
+  box-shadow: var(--shadow);
+}
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* --- 🆕 메뉴 [수정] [삭제] (작은 글자 버튼) --- */
+.menu-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.menu-tools button {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  color: var(--text-soft);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.menu-tools button:hover {
+  color: var(--pink-dark);
+  text-decoration: underline;
+}
+
+.menu-item.editing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-add-form label,
+.menu-item.editing label {
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.menu-item.editing input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 14px;
 }
 
 /* --- 슬롯머신 창 --- */
