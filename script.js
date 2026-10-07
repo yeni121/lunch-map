@@ -78,6 +78,8 @@ const editForm = document.querySelector(".edit-form");
 const editCategorySelect = document.querySelector("#edit-category");
 const saveEditButton = document.querySelector(".save-edit");
 const cancelEditButton = document.querySelector(".cancel-edit");
+const addTagBoxes = document.querySelectorAll(".add-tag");   // 🆕 추가 칸의 상황 체크박스
+const editTagBoxes = document.querySelectorAll(".edit-tag"); // 🆕 수정 칸의 상황 체크박스
 const reviewCommentInput = document.querySelector("#review-comment");
 const reviewList = document.querySelector(".review-list");
 const kakaoLink = document.querySelector(".kakao-link");
@@ -107,6 +109,7 @@ let searchMarker = null;       // 검색 결과에서 고른 가게의 임시 �
 let cameFromSearch = false;    // 검색 결과에서 자세히 보기로 왔는지
 let addScore = 0;              // 맛집 추가할 때 고른 별 개수
 let selectedCategory = "전체"; // 목록에서 고른 음식 종류
+let selectedSituation = "전체"; // 🆕 목록에서 고른 상황 (점심 / 회식·저녁)
 let cards = [];                // 목록에 그린 맛집 카드들
 const LIST_PAGE_SIZE = 7;      // 목록에 한 번에 보여줄 개수
 let listPage = 1;               // 지금 보고 있는 목록 페이지
@@ -115,6 +118,12 @@ let menuScore = 0;              // 메뉴 리뷰에서 고른 별 개수
 
 // 우리 사이트의 음식 종류 7가지 (기획서 규칙)
 const CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페·디저트", "기타"];
+
+// 🆕 상황 태그 2가지 (저장하는 글자 → 화면에 보여줄 글자)
+const SITUATIONS = [
+  { value: "점심", label: "🍱 점심" },
+  { value: "회식·저녁", label: "🍻 회식·저녁" }
+];
 
 // 6. 평균 별점 계산하기 (별점이 없으면 -1)
 function averageScore(ratings) {
@@ -177,7 +186,7 @@ function showDetail(restaurant, fromSearch) {
   paintStars();
 
   detailName.textContent = restaurant.name;
-  detailInfo.textContent = restaurant.category;
+  detailInfo.textContent = [restaurant.category].concat(situationLabels(restaurant)).join(" · ");
   detailRating.textContent = ratingText(restaurant.ratings);
   renderReviews(restaurant);
 
@@ -355,6 +364,35 @@ async function loadRestaurants() {
       listPage = 1; 
       applyFilter();
     });
+
+    // 🆕 상황 골라보기: [전체] [🍱 점심] [🍻 회식·저녁]
+    const situationRow = document.createElement("div");
+    situationRow.className = "situation-filter";
+
+    const situationOptions = [{ value: "전체", label: "전체" }].concat(SITUATIONS);
+    situationOptions.forEach(function (situation) {
+      const count = data.filter(function (restaurant) {
+        return situation.value === "전체" || tagsOf(restaurant).includes(situation.value);
+      }).length;
+
+      const chip = document.createElement("button");
+      chip.className = "situation-chip";
+      chip.textContent = situation.label + " " + count;
+      chip.setAttribute("aria-pressed", String(selectedSituation === situation.value));
+      chip.addEventListener("click", function () {
+        selectedSituation = situation.value;
+        situationRow.querySelectorAll(".situation-chip").forEach(function (other) {
+          other.setAttribute("aria-pressed", "false");
+        });
+        chip.setAttribute("aria-pressed", "true");
+        listPage = 1;
+        applyFilter();
+      });
+      situationRow.append(chip);
+    });
+    listArea.append(situationRow);
+
+    // 음식 종류 드롭다운은 상황 버튼 줄 밑에 두기
     listArea.append(filterSelect);
   }
 
@@ -371,6 +409,21 @@ async function loadRestaurants() {
     infoText.textContent = restaurant.category + " · " + ratingText(restaurant.ratings);
 
     item.append(nameText, infoText);
+
+    // 🆕 상황 태그가 있으면 카드에 작은 꼬리표로 보여주기
+    const labels = situationLabels(restaurant);
+    if (labels.length > 0) {
+      const tagLine = document.createElement("div");
+      tagLine.className = "card-tags";
+      labels.forEach(function (label) {
+        const tag = document.createElement("span");
+        tag.className = "card-tag";
+        tag.textContent = label;
+        tagLine.append(tag);
+      });
+      item.append(tagLine);
+    }
+
     listArea.append(item);
     cards.push(item);
 
@@ -423,7 +476,7 @@ async function loadRestaurants() {
   if (data.length > 0) {
     const filterEmpty = document.createElement("p");
     filterEmpty.className = "filter-empty";
-    filterEmpty.textContent = "이 종류에는 아직 등록된 맛집이 없어요.";
+    filterEmpty.textContent = "조건에 맞는 맛집이 아직 없어요. 가게의 [수정]에서 상황 태그를 붙일 수 있어요!";
     filterEmpty.hidden = true;
     listArea.append(filterEmpty);
   }
@@ -629,6 +682,7 @@ submitAddButton.addEventListener("click", async function () {
     address: selectedPlace.road_address_name || selectedPlace.address_name,
     kakao_place_id: selectedPlace.id,
     kakao_url: selectedPlace.place_url,
+    tags: checkedTags(addTagBoxes),
     created_by: userName
   }).select();
 
@@ -669,6 +723,9 @@ submitAddButton.addEventListener("click", async function () {
   addForm.hidden = true;
   selectedPlace = null;
   addScore = 0;
+  addTagBoxes.forEach(function (box) {
+    box.checked = false;
+  });
   clearSearchMarker();
 
   // 목록으로 돌아가고, 지도는 새로 추가한 가게로 이동
@@ -785,11 +842,42 @@ function categoryOf(restaurant) {
   return "기타";
 }
 
-// 25. 고른 음식 종류를, 지금 페이지 것만 보여주기
+// 24-1. 🆕 상황 태그 도우미들
+// 가게의 태그 목록 (아직 태그가 없는 가게는 빈 목록)
+function tagsOf(restaurant) {
+  return restaurant.tags || [];
+}
+
+// 태그를 화면 글자로 바꾸기 (예: "점심" → "🍱 점심")
+function situationLabels(restaurant) {
+  return SITUATIONS.filter(function (situation) {
+    return tagsOf(restaurant).includes(situation.value);
+  }).map(function (situation) {
+    return situation.label;
+  });
+}
+
+// 체크된 체크박스의 값만 모으기 (예: ["점심", "회식·저녁"])
+function checkedTags(boxes) {
+  const tags = [];
+  boxes.forEach(function (box) {
+    if (box.checked) {
+      tags.push(box.value);
+    }
+  });
+  return tags;
+}
+
+// 음식 종류 + 상황, 두 가지 조건을 모두 맞는 가게인지
+function matchesFilter(restaurant) {
+  const categoryOk = selectedCategory === "전체" || categoryOf(restaurant) === selectedCategory;
+  const situationOk = selectedSituation === "전체" || tagsOf(restaurant).includes(selectedSituation);
+  return categoryOk && situationOk;
+}
+
+// 25. 고른 조건에 맞는 가게를, 지금 페이지 것만 보여주기
 function applyFilter() {
-  function isMatch(restaurant) {
-    return selectedCategory === "전체" || categoryOf(restaurant) === selectedCategory;
-  }
+  const isMatch = matchesFilter;
 
   // 1) 고른 종류에 맞는 가게가 몇 개인지 먼저 세기
   let matchCount = 0;
@@ -864,6 +952,9 @@ CATEGORIES.forEach(function (category) {
 // 27. 음식 종류 수정하기
 editButton.addEventListener("click", function () {
   editCategorySelect.value = categoryOf(selectedRestaurant);
+  editTagBoxes.forEach(function (box) {
+    box.checked = tagsOf(selectedRestaurant).includes(box.value);
+  });
   editForm.hidden = false;
 });
 
@@ -873,18 +964,19 @@ cancelEditButton.addEventListener("click", function () {
 
 saveEditButton.addEventListener("click", async function () {
   const newCategory = editCategorySelect.value;
+  const newTags = checkedTags(editTagBoxes);
 
   const { error } = await db.from("restaurants")
-    .update({ category: newCategory })
+    .update({ category: newCategory, tags: newTags })
     .eq("id", selectedRestaurant.id);
 
   if (error) {
-    alert("음식 종류를 바꾸지 못했어요. 다시 시도해 주세요.");
-    console.log("음식 종류 수정 실패:", error);
+    alert("수정하지 못했어요. 다시 시도해 주세요.");
+    console.log("가게 정보 수정 실패:", error);
     return;
   }
 
-  alert("음식 종류를 '" + newCategory + "'(으)로 바꿨어요!");
+  alert("수정했어요! ✏️");
 
   const data = await loadRestaurants();
   const updated = data.find(function (restaurant) {
@@ -1168,20 +1260,28 @@ let isSpinning = false;    // 지금 돌아가는 중인지
 
 // 슬롯머신 창 열기
 function openRandomPick() {
-  // 골라보기에서 고른 음식 종류 안에서만 뽑아요
-  randomCandidates = restaurants.filter(function (restaurant) {
-    return selectedCategory === "전체" || categoryOf(restaurant) === selectedCategory;
-  });
+  // 골라보기에서 고른 음식 종류 + 상황 안에서만 뽑아요
+  randomCandidates = restaurants.filter(matchesFilter);
 
   if (randomCandidates.length === 0) {
-    alert("추천할 맛집이 없어요. 먼저 맛집을 추가해 주세요!");
+    alert("지금 고른 조건에 맞는 맛집이 없어요. 골라보기를 바꿔 보세요!");
     return;
   }
 
-  if (selectedCategory === "전체") {
+  // 예: "한식 · 🍻 회식·저녁 3곳 중에서 골라요"
+  const scopeParts = [];
+  if (selectedCategory !== "전체") {
+    scopeParts.push(selectedCategory);
+  }
+  SITUATIONS.forEach(function (situation) {
+    if (situation.value === selectedSituation) {
+      scopeParts.push(situation.label);
+    }
+  });
+  if (scopeParts.length === 0) {
     randomScope.textContent = "등록된 맛집 " + randomCandidates.length + "곳 중에서 골라요";
   } else {
-    randomScope.textContent = selectedCategory + " " + randomCandidates.length + "곳 중에서 골라요";
+    randomScope.textContent = scopeParts.join(" · ") + " " + randomCandidates.length + "곳 중에서 골라요";
   }
 
   randomPicked = null;

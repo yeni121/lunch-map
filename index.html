@@ -31,6 +31,12 @@
             <div class="edit-form" hidden>
                 <label for="edit-category">음식 종류 바꾸기</label>
                 <select id="edit-category"></select>
+                <!-- 🆕 상황 태그 (여러 개 골라도 돼요) -->
+                <fieldset class="tag-choices">
+                    <legend>어떤 자리에 어울려요? (여러 개 골라도 돼요)</legend>
+                    <label><input type="checkbox" class="edit-tag" value="점심"> 🍱 점심</label>
+                    <label><input type="checkbox" class="edit-tag" value="회식·저녁"> 🍻 회식·저녁</label>
+                </fieldset>
                 <div class="edit-buttons">
                     <button class="save-edit">저장</button>
                     <button class="cancel-edit">취소</button>
@@ -109,6 +115,12 @@
                 <p class="selected-place"></p>
                 <label for="add-category">음식 종류 (자동으로 골랐어요, 바꿀 수 있어요)</label>
                 <select id="add-category"></select>
+                <!-- 🆕 상황 태그 (여러 개 골라도 돼요) -->
+                <fieldset class="tag-choices">
+                    <legend>어떤 자리에 어울려요? (선택 · 여러 개 골라도 돼요)</legend>
+                    <label><input type="checkbox" class="add-tag" value="점심"> 🍱 점심</label>
+                    <label><input type="checkbox" class="add-tag" value="회식·저녁"> 🍻 회식·저녁</label>
+                </fieldset>
                 <label for="add-user-name">내 이름(닉네임)</label>
                 <input id="add-user-name" type="text" maxlength="10" placeholder="예: 김팀원">
                 <label>별점 (선택 · 가 봤다면 남겨 주세요)</label>
