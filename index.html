@@ -22,6 +22,7 @@
         <section class="detail-area" hidden>
             <button class="back-button">← 목록으로</button>
             <h2 class="detail-name"></h2>
+            <span class="manual-badge" hidden>✏️ 직접 추가한 가게</span>
             <p class="detail-info"></p>
             <p class="detail-rating"></p>
             <div class="detail-actions">
@@ -29,6 +30,9 @@
                 <button class="delete-button">삭제</button>
             </div>
             <div class="edit-form" hidden>
+                <!-- 🆕 직접 추가한 가게만 이름을 고칠 수 있어요 -->
+                <label for="edit-name" class="edit-name-part">가게 이름 바꾸기</label>
+                <input id="edit-name" class="edit-name-part" type="text" maxlength="30">
                 <label for="edit-category">음식 종류 바꾸기</label>
                 <select id="edit-category"></select>
                 <!-- 🆕 상황 태그 (여러 개 골라도 돼요) -->
@@ -117,6 +121,38 @@
                 <button class="search-button">검색</button>
             </div>
             <div class="search-results"></div>
+            <!-- 🆕 검색해도 없을 때: 직접 추가하기 -->
+            <p class="manual-entry" hidden>
+                찾는 가게가 없나요?
+                <button class="manual-open">✏️ 직접 추가하기</button>
+            </p>
+            <div class="rating-form manual-form" hidden>
+                <p class="selected-place">✏️ 직접 추가하기</p>
+                <p class="manual-place">📍 지도에서 가게 위치를 눌러 주세요 (회사 1km 안)</p>
+                <label for="manual-name">가게 이름</label>
+                <input id="manual-name" type="text" maxlength="30" placeholder="예: 골목 백반집">
+                <label for="manual-category">음식 종류</label>
+                <select id="manual-category"></select>
+                <fieldset class="tag-choices">
+                    <legend>어떤 자리에 어울려요? (선택 · 여러 개 골라도 돼요)</legend>
+                    <label><input type="checkbox" class="manual-tag" value="점심"> 🍱 점심</label>
+                    <label><input type="checkbox" class="manual-tag" value="회식·저녁"> 🍻 회식·저녁</label>
+                </fieldset>
+                <label for="manual-user-name">내 이름(닉네임)</label>
+                <input id="manual-user-name" type="text" maxlength="10" placeholder="예: 김팀원">
+                <label>별점 (선택 · 가 봤다면 남겨 주세요)</label>
+                <div class="stars">
+                    <button class="star" data-score="1">★</button>
+                    <button class="star" data-score="2">★</button>
+                    <button class="star" data-score="3">★</button>
+                    <button class="star" data-score="4">★</button>
+                    <button class="star" data-score="5">★</button>
+                </div>
+                <div class="edit-buttons">
+                    <button class="save-edit submit-manual">추가하기</button>
+                    <button class="cancel-edit cancel-manual">취소</button>
+                </div>
+            </div>
             <div class="rating-form add-form" hidden>
                 <p class="selected-place"></p>
                 <label for="add-category">음식 종류 (자동으로 골랐어요, 바꿀 수 있어요)</label>

@@ -721,6 +721,63 @@ h1 {
   }
 }
 
+/* 🆕 직접 추가하기 */
+.manual-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #888888;
+  font-size: 14px;
+  padding: 10px 14px;
+  border: 1px dashed #dddddd;
+  border-radius: 6px;
+}
+
+.manual-open {
+  background-color: white;
+  color: #c9335d;
+  border: 1px solid #c9335d;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.manual-open:hover {
+  background-color: #fdf0f3;
+}
+
+.manual-place {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background-color: #fdf0f3;
+  color: #c9335d;
+  font-size: 14px;
+}
+
+.manual-place.done {
+  background-color: white;
+  border: 1px solid #c9335d;
+}
+
+.manual-badge {
+  display: inline-block;
+  background-color: #fdf0f3;
+  color: #c9335d;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.edit-form input {
+  padding: 8px 10px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
 /* 🆕 탭 줄: [📋 우리 맛집] [🆕 새로운 가게] */
 .tabs {
   display: flex;

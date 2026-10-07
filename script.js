@@ -80,6 +80,20 @@ const saveEditButton = document.querySelector(".save-edit");
 const cancelEditButton = document.querySelector(".cancel-edit");
 const addTagBoxes = document.querySelectorAll(".add-tag");   // 🆕 추가 칸의 상황 체크박스
 const editTagBoxes = document.querySelectorAll(".edit-tag"); // 🆕 수정 칸의 상황 체크박스
+const manualBadge = document.querySelector(".manual-badge");           // 🆕 직접 추가 꼬리표
+const editNameParts = document.querySelectorAll(".edit-name-part");     // 🆕 이름 고치기 칸 (글자 + 입력칸)
+const editNameInput = document.querySelector("#edit-name");
+const manualEntry = document.querySelector(".manual-entry");            // 🆕 "찾는 가게가 없나요?"
+const manualOpenButton = document.querySelector(".manual-open");
+const manualForm = document.querySelector(".manual-form");
+const manualPlaceText = document.querySelector(".manual-place");
+const manualNameInput = document.querySelector("#manual-name");
+const manualCategorySelect = document.querySelector("#manual-category");
+const manualTagBoxes = document.querySelectorAll(".manual-tag");
+const manualUserNameInput = document.querySelector("#manual-user-name");
+const manualStarButtons = document.querySelectorAll(".manual-form .star");
+const submitManualButton = document.querySelector(".submit-manual");
+const cancelManualButton = document.querySelector(".cancel-manual");
 const reviewCommentInput = document.querySelector("#review-comment");
 const reviewList = document.querySelector(".review-list");
 const kakaoLink = document.querySelector(".kakao-link");
@@ -186,6 +200,7 @@ function showDetail(restaurant, fromSearch) {
   paintStars();
 
   detailName.textContent = restaurant.name;
+  manualBadge.hidden = !isManual(restaurant); // 🆕 직접 추가한 가게면 꼬리표
   detailInfo.textContent = [restaurant.category].concat(situationLabels(restaurant)).join(" · ");
   detailRating.textContent = ratingText(restaurant.ratings);
   renderReviews(restaurant);
@@ -490,6 +505,7 @@ async function loadRestaurants() {
 // 13. 맛집 추가 칸 열고 닫기
 function openAddArea() {
   addFromNew = false;
+  closeManualForm();
   listArea.hidden = true;
   detailArea.hidden = true;
   newArea.hidden = true;
@@ -499,6 +515,7 @@ function openAddArea() {
 
 addBackButton.addEventListener("click", function () {
   addArea.hidden = true;
+  closeManualForm();
   clearSearchMarker();
   // 🆕 새로운 가게 탭에서 왔으면 그 탭으로 돌아가기
   if (addFromNew) {
@@ -538,8 +555,10 @@ function searchPlaces() {
   addForm.hidden = true;
   clearSearchMarker();
 
+  closeManualForm();
   places.keywordSearch(keyword, function (results, status) {
     searchResults.innerHTML = "";
+    manualEntry.hidden = false; // 🆕 검색하면 항상 "직접 추가하기"도 보여주기
     foundPlaces = [];
     shownCount = 0;
 
@@ -729,6 +748,7 @@ submitAddButton.addEventListener("click", async function () {
 
   searchInput.value = "";
   searchResults.innerHTML = "";
+  manualEntry.hidden = true;
   addForm.hidden = true;
   selectedPlace = null;
   addScore = 0;
@@ -770,16 +790,24 @@ function rememberName(name) {
   localStorage.setItem("userName", name);
   userNameInput.value = name;
   addUserNameInput.value = name;
+  manualUserNameInput.value = name;
 }
 
 const savedName = localStorage.getItem("userName");
 if (savedName) {
   userNameInput.value = savedName;
   addUserNameInput.value = savedName;
+  manualUserNameInput.value = savedName;
 }
 // 22. 지도에서 누른 곳 근처의 가게 찾기 (맛집 추가 화면에서만)
 kakao.maps.event.addListener(map, "click", function (mouseEvent) {
   if (addArea.hidden) {
+    return;
+  }
+
+  // 🆕 직접 추가하기 중이면: 누른 곳에 위치 핀 꽂기
+  if (manualMode) {
+    placeManualPin(mouseEvent.latLng);
     return;
   }
 
@@ -824,6 +852,7 @@ kakao.maps.event.addListener(map, "click", function (mouseEvent) {
       });
 
       searchResults.innerHTML = "";
+      manualEntry.hidden = false;
       foundPlaces = nearby;
       shownCount = 0;
 
@@ -957,10 +986,19 @@ CATEGORIES.forEach(function (category) {
   const editOption = document.createElement("option");
   editOption.textContent = category;
   editCategorySelect.append(editOption);
+
+  const manualOption = document.createElement("option");
+  manualOption.textContent = category;
+  manualCategorySelect.append(manualOption);
 });
 // 27. 음식 종류 수정하기
 editButton.addEventListener("click", function () {
   editCategorySelect.value = categoryOf(selectedRestaurant);
+  // 🆕 직접 추가한 가게만 이름 칸 보여주기
+  editNameParts.forEach(function (part) {
+    part.hidden = !isManual(selectedRestaurant);
+  });
+  editNameInput.value = selectedRestaurant.name;
   editTagBoxes.forEach(function (box) {
     box.checked = tagsOf(selectedRestaurant).includes(box.value);
   });
@@ -974,9 +1012,20 @@ cancelEditButton.addEventListener("click", function () {
 saveEditButton.addEventListener("click", async function () {
   const newCategory = editCategorySelect.value;
   const newTags = checkedTags(editTagBoxes);
+  const changes = { category: newCategory, tags: newTags };
+
+  // 🆕 직접 추가한 가게는 이름도 고쳐요
+  if (isManual(selectedRestaurant)) {
+    const newName = editNameInput.value.trim();
+    if (newName === "") {
+      alert("가게 이름을 적어 주세요!");
+      return;
+    }
+    changes.name = newName;
+  }
 
   const { error } = await db.from("restaurants")
-    .update({ category: newCategory, tags: newTags })
+    .update(changes)
     .eq("id", selectedRestaurant.id);
 
   if (error) {
@@ -1593,5 +1642,166 @@ function addNewPlace(place) {
   selectPlace(place, searchResults.querySelector(".search-result"));
   addUserNameInput.focus();
 }
+
+// 38. 🆕 직접 추가하기 (카카오맵에 없는 가게)
+const geocoder = new kakao.maps.services.Geocoder();
+
+let manualMode = false;      // 지금 직접 추가하기 중인지
+let manualPosition = null;   // 지도에서 누른 위치
+let manualAddress = "";      // 그 위치의 주소 (자동으로 찾아요)
+let manualScore = 0;         // 고른 별 개수
+
+// 직접 추가한 가게인지 (카카오 번호가 없으면 직접 추가한 가게)
+function isManual(restaurant) {
+  return !restaurant.kakao_place_id;
+}
+
+// 직접 추가하기 칸 열기
+manualOpenButton.addEventListener("click", function () {
+  manualMode = true;
+  selectedPlace = null;
+  addForm.hidden = true;
+  searchResults.hidden = true;
+  manualEntry.hidden = true;
+  clearSearchMarker();
+
+  manualPosition = null;
+  manualAddress = "";
+  manualPlaceText.textContent = "📍 지도에서 가게 위치를 눌러 주세요 (회사 1km 안)";
+  manualPlaceText.classList.remove("done");
+  manualNameInput.value = searchInput.value.trim(); // 검색한 이름을 미리 채워 두기
+  manualCategorySelect.value = "한식";
+  manualTagBoxes.forEach(function (box) {
+    box.checked = false;
+  });
+  manualScore = 0;
+  paintStars(manualStarButtons, manualScore);
+
+  manualForm.hidden = false;
+  manualNameInput.focus();
+});
+
+// 직접 추가하기 칸 닫기 (검색 결과 다시 보여주기)
+function closeManualForm() {
+  if (!manualMode) {
+    return;
+  }
+  manualMode = false;
+  manualForm.hidden = true;
+  searchResults.hidden = false;
+  manualEntry.hidden = false;
+  clearSearchMarker();
+}
+
+cancelManualButton.addEventListener("click", closeManualForm);
+
+// 지도에서 누른 곳에 분홍 별 핀 꽂기 (다시 누르면 옮겨 가요)
+function placeManualPin(position) {
+  const line = new kakao.maps.Polyline({ path: [center, position] });
+  if (line.getLength() > 1000) {
+    alert("회사에서 1km 안의 가게만 추가할 수 있어요!");
+    return;
+  }
+
+  manualPosition = position;
+  clearSearchMarker();
+  searchMarker = new kakao.maps.Marker({
+    position: position,
+    map: map,
+    image: pinkStarImage
+  });
+
+  // 누른 곳의 주소 찾기
+  manualAddress = "";
+  manualPlaceText.textContent = "📍 위치를 골랐어요! (다시 누르면 옮겨요)";
+  manualPlaceText.classList.add("done");
+  geocoder.coord2Address(position.getLng(), position.getLat(), function (result, status) {
+    if (status === kakao.maps.services.Status.OK) {
+      const found = result[0];
+      manualAddress = found.road_address ? found.road_address.address_name : found.address.address_name;
+      manualPlaceText.textContent = "📍 " + manualAddress + " (다시 누르면 옮겨요)";
+    }
+  });
+}
+
+// 별 누르기
+manualStarButtons.forEach(function (star) {
+  star.addEventListener("click", function () {
+    manualScore = Number(star.dataset.score);
+    paintStars(manualStarButtons, manualScore);
+  });
+});
+
+// 추가하기 버튼
+submitManualButton.addEventListener("click", async function () {
+  const name = manualNameInput.value.trim();
+  const userName = manualUserNameInput.value.trim();
+
+  if (name === "") {
+    alert("가게 이름을 적어 주세요!");
+    return;
+  }
+  if (manualPosition === null) {
+    alert("지도에서 가게 위치를 눌러 주세요!");
+    return;
+  }
+  if (userName === "") {
+    alert("이름(닉네임)을 적어 주세요!");
+    return;
+  }
+
+  // 같은 이름의 가게가 이미 있으면 한 번 물어보기 (그래도 추가는 할 수 있어요)
+  const sameName = restaurants.find(function (restaurant) {
+    return restaurant.name.replace(/\s/g, "") === name.replace(/\s/g, "");
+  });
+  if (sameName && !confirm("'" + sameName.name + "'(이)라는 가게가 이미 있어요. 같은 가게 같아요!\n그래도 추가할까요?")) {
+    return;
+  }
+
+  const { data: newRows, error } = await db.from("restaurants").insert({
+    name: name,
+    category: manualCategorySelect.value,
+    lat: manualPosition.getLat(),
+    lng: manualPosition.getLng(),
+    address: manualAddress,
+    tags: checkedTags(manualTagBoxes),
+    created_by: userName
+  }).select();
+
+  if (error) {
+    alert("맛집을 추가하지 못했어요. 다시 시도해 주세요.");
+    console.log("직접 추가 실패:", error);
+    return;
+  }
+
+  // 별을 골랐으면 별점도 같이 저장
+  if (manualScore > 0) {
+    const { error: ratingError } = await db.from("ratings").insert({
+      restaurant_id: newRows[0].id,
+      user_name: userName,
+      score: manualScore
+    });
+
+    if (ratingError) {
+      alert("맛집은 추가했지만 별점은 저장하지 못했어요. 자세히 보기에서 다시 남겨 주세요.");
+      console.log("별점 저장 실패:", ratingError);
+    }
+  }
+
+  rememberName(userName);
+  alert(name + " 추가 완료! 🎉");
+
+  const position = manualPosition;
+  closeManualForm();
+  searchInput.value = "";
+  searchResults.innerHTML = "";
+  manualEntry.hidden = true;
+  await loadRestaurants();
+
+  // 목록으로 돌아가고, 지도는 새로 추가한 가게로 이동
+  addArea.hidden = true;
+  listArea.hidden = false;
+  map.panTo(position);
+});
 
 loadRestaurants();
