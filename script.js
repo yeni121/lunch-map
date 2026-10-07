@@ -307,11 +307,22 @@ async function loadRestaurants() {
 
   if (data.length > 0) {
     // 목록 맨 위에 맛집 추가 버튼
+    // 맨 위 버튼 줄: [+ 맛집 추가] [🎲 오늘 뭐 먹지?]
+    const listActions = document.createElement("div");
+    listActions.className = "list-actions";
+
     const topAddButton = document.createElement("button");
     topAddButton.className = "submit-add list-add-button";
     topAddButton.textContent = "+ 맛집 추가";
     topAddButton.addEventListener("click", openAddArea);
-    listArea.append(topAddButton);
+
+    const randomButton = document.createElement("button");
+    randomButton.className = "random-button";
+    randomButton.textContent = "🎲 오늘 뭐 먹지?";
+    randomButton.addEventListener("click", openRandomPick);
+
+    listActions.append(topAddButton, randomButton);
+    listArea.append(listActions);
     // 🆕 맛집 추가 안내 문구
     const addHint = document.createElement("p");
     addHint.className = "list-hint";
@@ -1138,6 +1149,130 @@ saveMenuReviewButton.addEventListener("click", async function () {
 // 35. 화면 크기가 바뀌면 지도 크기 다시 맞추기
 window.addEventListener("resize", function () {
   map.relayout();
+});
+
+// 36. 🎲 오늘 뭐 먹지? 슬롯머신
+const randomOverlay = document.querySelector(".random-overlay");
+const randomScope = document.querySelector(".random-scope");
+const slotWindow = document.querySelector(".slot-window");
+const slotName = document.querySelector(".slot-name");
+const slotInfo = document.querySelector(".slot-info");
+const randomQuestion = document.querySelector(".random-question");
+const randomGoButton = document.querySelector(".random-go");
+const randomAgainButton = document.querySelector(".random-again");
+const randomCloseButton = document.querySelector(".random-close");
+
+let randomCandidates = []; // 이번에 뽑을 후보 가게들
+let randomPicked = null;   // 뽑힌 가게
+let isSpinning = false;    // 지금 돌아가는 중인지
+
+// 슬롯머신 창 열기
+function openRandomPick() {
+  // 골라보기에서 고른 음식 종류 안에서만 뽑아요
+  randomCandidates = restaurants.filter(function (restaurant) {
+    return selectedCategory === "전체" || categoryOf(restaurant) === selectedCategory;
+  });
+
+  if (randomCandidates.length === 0) {
+    alert("추천할 맛집이 없어요. 먼저 맛집을 추가해 주세요!");
+    return;
+  }
+
+  if (selectedCategory === "전체") {
+    randomScope.textContent = "등록된 맛집 " + randomCandidates.length + "곳 중에서 골라요";
+  } else {
+    randomScope.textContent = selectedCategory + " " + randomCandidates.length + "곳 중에서 골라요";
+  }
+
+  randomPicked = null;
+  randomOverlay.hidden = false;
+  spinSlot();
+}
+
+// 슬롯 돌리기: 처음엔 빠르게, 점점 느려지다가 멈춰요
+function spinSlot() {
+  isSpinning = true;
+  randomGoButton.disabled = true;
+  randomAgainButton.disabled = true;
+  randomQuestion.style.visibility = "hidden";
+  slotInfo.textContent = "";
+  slotWindow.classList.remove("winner");
+
+  // 결과를 먼저 정해 두기 (방금 나온 가게는 되도록 피하기)
+  let pool = randomCandidates;
+  if (randomPicked !== null && randomCandidates.length > 1) {
+    pool = randomCandidates.filter(function (restaurant) {
+      return restaurant.id !== randomPicked.id;
+    });
+  }
+  const result = pool[Math.floor(Math.random() * pool.length)];
+
+  // 움직임 줄이기를 켠 사람에게는 애니메이션 없이 바로 보여주기
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion || randomCandidates.length === 1) {
+    finishSpin(result);
+    return;
+  }
+
+  let delay = 50;
+  let index = Math.floor(Math.random() * randomCandidates.length);
+
+  function nextName() {
+    index = (index + 1) % randomCandidates.length;
+    slotName.textContent = randomCandidates[index].name;
+
+    delay = delay * 1.12;
+    if (delay < 320) {
+      setTimeout(nextName, delay);
+    } else {
+      setTimeout(function () {
+        finishSpin(result);
+      }, delay);
+    }
+  }
+
+  nextName();
+}
+
+// 멈추고 결과 보여주기
+function finishSpin(result) {
+  randomPicked = result;
+  slotName.textContent = result.name;
+  slotInfo.textContent = result.category + " · " + ratingText(result.ratings);
+  slotWindow.classList.add("winner");
+  randomQuestion.style.visibility = "visible";
+
+  randomGoButton.disabled = false;
+  randomAgainButton.disabled = randomCandidates.length <= 1;
+  isSpinning = false;
+}
+
+// 슬롯머신 창 닫기
+function closeRandomPick() {
+  if (isSpinning) {
+    return;
+  }
+  randomOverlay.hidden = true;
+}
+
+randomGoButton.addEventListener("click", function () {
+  randomOverlay.hidden = true;
+  showDetail(randomPicked);
+});
+
+randomAgainButton.addEventListener("click", spinSlot);
+randomCloseButton.addEventListener("click", closeRandomPick);
+
+// 창 바깥(어두운 곳)을 누르거나 Esc 키를 누르면 닫기
+randomOverlay.addEventListener("click", function (event) {
+  if (event.target === randomOverlay) {
+    closeRandomPick();
+  }
+});
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape" && !randomOverlay.hidden) {
+    closeRandomPick();
+  }
 });
 
 loadRestaurants();

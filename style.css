@@ -559,6 +559,163 @@ h1 {
   font-size: 12px;
 }
 
+/* 🆕 목록 맨 위 버튼 줄 */
+.list-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.list-actions .list-add-button {
+  flex: 1;
+  width: auto;
+  margin-bottom: 0;
+}
+
+.random-button {
+  flex: 1;
+  background-color: white;
+  color: #c9335d;
+  border: 1px solid #c9335d;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.random-button:hover {
+  background-color: #fdf0f3;
+}
+
+/* 🆕 슬롯머신 창 */
+.random-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.random-box {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 24px 24px;
+  background-color: white;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.random-box h2 {
+  margin: 0 0 4px;
+  color: #ea5079;
+}
+
+.random-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #888888;
+  cursor: pointer;
+}
+
+.random-scope {
+  margin: 0 0 16px;
+  color: #888888;
+  font-size: 13px;
+}
+
+.slot-window {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72px;
+  padding: 0 12px;
+  border: 2px solid #eeeeee;
+  border-radius: 12px;
+  background-color: #faf7f8;
+  overflow: hidden;
+}
+
+.slot-name {
+  font-size: 22px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-window.winner {
+  border-color: #ea5079;
+  background-color: #fdf0f3;
+  animation: slot-pop 0.35s ease-out;
+}
+
+@keyframes slot-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.slot-info {
+  min-height: 20px;
+  margin: 10px 0 0;
+  color: #888888;
+  font-size: 14px;
+}
+
+.random-question {
+  margin: 16px 0 12px;
+  font-weight: bold;
+}
+
+.random-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.random-go {
+  flex: 1;
+  background-color: #c9335d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.random-again {
+  flex: 1;
+  background-color: white;
+  color: #c9335d;
+  border: 1px solid #c9335d;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.random-go:disabled,
+.random-again:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-window.winner {
+    animation: none;
+  }
+}
+
 @media (max-width: 768px) {
   body {
     height: auto;
