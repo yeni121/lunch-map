@@ -721,6 +721,19 @@ h1 {
   }
 }
 
+/* 🆕 음식 종류 + 정렬 드롭다운 한 줄 */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-row .category-filter {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 /* 🆕 직접 추가하기 */
 .manual-entry {
   display: flex;

@@ -124,6 +124,7 @@ let cameFromSearch = false;    // 검색 결과에서 자세히 보기로 왔는
 let addScore = 0;              // 맛집 추가할 때 고른 별 개수
 let selectedCategory = "전체"; // 목록에서 고른 음식 종류
 let selectedSituation = "전체"; // 🆕 목록에서 고른 상황 (점심 / 회식·저녁)
+let sortMode = "rating";        // 🆕 정렬 방법 (rating 별점 / distance 거리 / recent 최근)
 let cards = [];                // 목록에 그린 맛집 카드들
 const LIST_PAGE_SIZE = 7;      // 목록에 한 번에 보여줄 개수
 let listPage = 1;               // 지금 보고 있는 목록 페이지
@@ -151,6 +152,18 @@ function averageScore(ratings) {
   });
 
   return sum / ratings.length;
+}
+
+// 6-0. 🆕 회사에서 가게까지 거리(m)와 걸어서 몇 분인지
+function distanceOf(restaurant) {
+  const line = new kakao.maps.Polyline({
+    path: [center, new kakao.maps.LatLng(restaurant.lat, restaurant.lng)]
+  });
+  return Math.round(line.getLength());
+}
+
+function walkMinutes(meters) {
+  return Math.max(1, Math.round(meters / 67)); // 어른 걸음 1분 ≈ 67m
 }
 
 // 6-1. 별점 글자 만들기
@@ -302,14 +315,11 @@ async function loadRestaurants() {
   markers = [];
   cards = [];
 
-  // 별점 높은 순으로 줄 세우기 (별점 없는 가게는 맨 아래)
-  data.sort(function (a, b) {
-    const diff = averageScore(b.ratings) - averageScore(a.ratings);
-    if (diff !== 0) {
-      return diff;
-    }
-    return b.ratings.length - a.ratings.length;
+  // 🆕 고른 정렬 방법으로 줄 세우기
+  data.forEach(function (restaurant) {
+    restaurant.distance = distanceOf(restaurant);
   });
+  data.sort(compareRestaurants);
 
   // 맛집이 하나도 없을 때 (빈 상태)
   if (data.length === 0) {
@@ -409,8 +419,31 @@ async function loadRestaurants() {
     });
     listArea.append(situationRow);
 
-    // 음식 종류 드롭다운은 상황 버튼 줄 밑에 두기
-    listArea.append(filterSelect);
+    // 🆕 정렬 고르기
+    const sortSelect = document.createElement("select");
+    sortSelect.className = "category-filter";
+    sortSelect.setAttribute("aria-label", "정렬");
+    SORT_OPTIONS.forEach(function (sortOption) {
+      const option = document.createElement("option");
+      option.value = sortOption.value;
+      option.textContent = sortOption.label;
+      sortSelect.append(option);
+    });
+    sortSelect.value = sortMode;
+    sortSelect.addEventListener("change", function () {
+      sortMode = sortSelect.value;
+      try {
+        localStorage.setItem("sortMode", sortMode); // 다음에 열어도 기억하기
+      } catch (error) {}
+      resortList();
+    });
+
+    // 음식 종류 드롭다운 + 정렬 드롭다운을 한 줄에 나란히 (상황 버튼 줄 밑에)
+    filterSelect.setAttribute("aria-label", "음식 종류");
+    const filterRow = document.createElement("div");
+    filterRow.className = "filter-row";
+    filterRow.append(filterSelect, sortSelect);
+    listArea.append(filterRow);
   }
 
 
@@ -423,7 +456,7 @@ async function loadRestaurants() {
     nameText.textContent = restaurant.name;
 
     const infoText = document.createElement("p");
-    infoText.textContent = restaurant.category + " · " + ratingText(restaurant.ratings);
+    infoText.textContent = restaurant.category + " · " + ratingText(restaurant.ratings) + " · 🚶 " + walkMinutes(restaurant.distance) + "분";
 
     item.append(nameText, infoText);
 
@@ -1577,7 +1610,7 @@ function makeNewCard(place) {
 
   // 예: "국밥 · 🚶 걸어서 약 5분 (320m)"  (어른 걸음 1분 ≈ 67m)
   const kind = place.category_name.split(" > ").pop();
-  const minutes = Math.max(1, Math.round(Number(place.distance) / 67));
+  const minutes = walkMinutes(Number(place.distance));
   const infoText = document.createElement("p");
   infoText.textContent = kind + " · 🚶 걸어서 약 " + minutes + "분 (" + place.distance + "m)";
 
@@ -1803,5 +1836,60 @@ submitManualButton.addEventListener("click", async function () {
   listArea.hidden = false;
   map.panTo(position);
 });
+
+// 39. 🆕 정렬 바꾸기 (별점 높은 순 / 가까운 순 / 최근 추가 순)
+const SORT_OPTIONS = [
+  { value: "rating", label: "⭐ 별점 높은 순" },
+  { value: "distance", label: "🚶 가까운 순" },
+  { value: "recent", label: "🆕 최근 추가 순" }
+];
+
+// 지난번에 고른 정렬 기억해 두었다가 꺼내기
+try {
+  const savedSort = localStorage.getItem("sortMode");
+  if (SORT_OPTIONS.some(function (option) { return option.value === savedSort; })) {
+    sortMode = savedSort;
+  }
+} catch (error) {}
+
+// 두 가게 중 누가 앞에 올지 정하기
+function compareRestaurants(a, b) {
+  if (sortMode === "distance") {
+    return a.distance - b.distance; // 가까운 가게가 앞으로
+  }
+  if (sortMode === "recent") {
+    return new Date(b.created_at) - new Date(a.created_at); // 최근에 추가한 가게가 앞으로
+  }
+  // 별점 높은 순 (별점이 같으면 평가한 사람이 많은 가게가 앞으로, 별점 없는 가게는 맨 아래)
+  const diff = averageScore(b.ratings) - averageScore(a.ratings);
+  if (diff !== 0) {
+    return diff;
+  }
+  return b.ratings.length - a.ratings.length;
+}
+
+// 이미 그려 둔 카드와 핀을 새 순서로 다시 줄 세우기
+function resortList() {
+  const rows = restaurants.map(function (restaurant, index) {
+    return { restaurant: restaurant, card: cards[index], marker: markers[index] };
+  });
+  rows.sort(function (a, b) {
+    return compareRestaurants(a.restaurant, b.restaurant);
+  });
+
+  restaurants = rows.map(function (row) { return row.restaurant; });
+  cards = rows.map(function (row) { return row.card; });
+  markers = rows.map(function (row) { return row.marker; });
+
+  // 카드를 새 순서대로 페이지 버튼 바로 앞에 다시 붙이기
+  const pager = listArea.querySelector(".pager");
+  cards.forEach(function (card) {
+    listArea.insertBefore(card, pager);
+  });
+
+  listPage = 1;
+  applyFilter();
+  listArea.scrollTop = 0;
+}
 
 loadRestaurants();
