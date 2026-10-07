@@ -1348,48 +1348,46 @@ select:focus {
   gap: 10px;
 }
 
-/* --- 🆕 내가 남긴 별점 카드 --- */
-.my-rating {
-  margin-bottom: 14px;
-  padding: 14px 16px;
+/* --- 🆕 내 별점 (누르면 바로 저장) --- */
+.quick-rating {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 12px;
+  padding: 8px 14px;
   border-radius: 16px;
   background-color: var(--pink-light);
 }
 
-.my-rating-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.quick-rating-label {
+  font-size: 14px;
+  font-weight: bold;
 }
 
-.my-rating-edit {
-  background-color: white;
-  color: var(--pink-dark);
-  border: 1px solid var(--pink-soft);
-  border-radius: 999px;
-  padding: 4px 12px;
+.quick-stars .star {
+  font-size: 24px;
+  padding: 0 1px;
+}
+
+.quick-rating-hint {
+  color: var(--text-soft);
   font-size: 13px;
+}
+
+.change-name {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  color: var(--text-soft);
+  font-size: 12px;
   cursor: pointer;
 }
 
-.my-rating-edit:hover {
-  border-color: var(--pink);
-}
-
-.my-rating-stars {
-  margin: 8px 0 0;
-  color: var(--pink);
-  font-size: 20px;
-  letter-spacing: 2px;
-}
-
-.my-rating-comment {
-  margin: 4px 0 0;
-  font-size: 14px;
-}
-
-.rating-form .edit-buttons .submit-rating {
-  flex: 1;
+.change-name:hover {
+  color: var(--pink-dark);
+  text-decoration: underline;
 }
 
 /* --- 🆕 메뉴 [수정] [삭제] (작은 글자 버튼) --- */

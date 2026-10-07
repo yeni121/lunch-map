@@ -62,15 +62,10 @@ const detailTabButtons = document.querySelectorAll(".detail-tabs .tab"); // 🎀
 const detailPanels = document.querySelectorAll(".detail-panel");
 const backButton = document.querySelector(".back-button");
 const userNameInput = document.querySelector("#user-name");
-const starButtons = document.querySelectorAll(".detail-area .rating-form .star");
+const starButtons = document.querySelectorAll(".quick-stars .star"); // 🆕 내 별점 (누르면 바로 저장)
 const addStarButtons = document.querySelectorAll(".add-form .star");
-const submitRatingButton = document.querySelector(".submit-rating");
-const ratingForm = document.querySelector(".detail-area .rating-form");   // 🆕 별점 남기기 칸
-const cancelRatingButton = document.querySelector(".cancel-rating");
-const myRatingBox = document.querySelector(".my-rating");                 // 🆕 내가 남긴 별점 카드
-const myRatingStars = document.querySelector(".my-rating-stars");
-const myRatingComment = document.querySelector(".my-rating-comment");
-const myRatingEditButton = document.querySelector(".my-rating-edit");
+const quickRatingHint = document.querySelector(".quick-rating-hint");    // 🆕 "눌러서 별점 주기" 안내
+const changeNameButton = document.querySelector(".change-name");
 const addArea = document.querySelector(".add-area");
 const addBackButton = document.querySelector(".add-back-button");
 const searchInput = document.querySelector("#search-input");
@@ -103,8 +98,6 @@ const manualUserNameInput = document.querySelector("#manual-user-name");
 const manualStarButtons = document.querySelectorAll(".manual-form .star");
 const submitManualButton = document.querySelector(".submit-manual");
 const cancelManualButton = document.querySelector(".cancel-manual");
-const reviewCommentInput = document.querySelector("#review-comment");
-const reviewList = document.querySelector(".review-list");
 const kakaoLink = document.querySelector(".kakao-link");
 const blogLink = document.querySelector(".blog-link");
 const menuAddToggle = document.querySelector(".menu-add-toggle");
@@ -206,7 +199,7 @@ function showDetail(restaurant, fromSearch) {
   }
 
   selectedRestaurant = restaurant;
-  // 내가 이미 남긴 별점이 있으면 미리 채워 두기
+  // 내가 이미 남긴 별점이 있으면 별을 칠해 두기
   const myName = userNameInput.value.trim();
   const myRating = restaurant.ratings.find(function (rating) {
     return rating.user_name === myName;
@@ -214,26 +207,12 @@ function showDetail(restaurant, fromSearch) {
 
   if (myRating) {
     selectedScore = myRating.score;
-    reviewCommentInput.value = myRating.comment || "";
-    submitRatingButton.textContent = "별점 고치기";
-
-    // 🆕 이미 남겼으면: 입력 칸은 숨기고 "내가 남긴 별점" 카드 보여주기
-    myRatingStars.textContent = "★".repeat(myRating.score) + "☆".repeat(5 - myRating.score) + "  " + myRating.score + "점";
-    myRatingComment.textContent = myRating.comment ? "\"" + myRating.comment + "\"" : "";
-    myRatingComment.hidden = !myRating.comment;
-    myRatingBox.hidden = false;
-    ratingForm.hidden = true;
+    quickRatingHint.textContent = myName + " 님의 별점";
   } else {
     selectedScore = 0;
-    reviewCommentInput.value = "";
-    submitRatingButton.textContent = "별점 남기기";
-
-    // 아직 안 남겼으면: 입력 칸 바로 보여주기
-    myRatingBox.hidden = true;
-    ratingForm.hidden = false;
+    quickRatingHint.textContent = "가 봤다면 눌러 주세요!";
   }
-  cancelRatingButton.hidden = true;
-  reviewList.after(ratingForm); // 입력 칸은 원래 자리(리뷰 목록 아래)로
+  changeNameButton.hidden = myName === "";
   paintStars();
 
   detailName.textContent = restaurant.name;
@@ -252,19 +231,18 @@ function showDetail(restaurant, fromSearch) {
   });
   detailTags.hidden = detailTags.children.length === 0;
 
-  // 🎀 탭 글자에 개수 붙이고, 새 가게면 리뷰 탭부터 (메뉴를 추가한 뒤처럼 같은 가게면 보던 탭 그대로)
-  const reviewCount = restaurant.ratings.filter(function (rating) {
-    return rating.comment;
-  }).length;
-  detailTabButtons[0].textContent = "💬 리뷰 " + reviewCount;
-  detailTabButtons[1].textContent = "🍲 메뉴 " + restaurant.menus.length;
+  // 🎀 탭 글자에 개수 붙이고, 새 가게면 메뉴 · 리뷰 탭부터 (같은 가게면 보던 탭 그대로)
+  let menuReviewCount = 0;
+  restaurant.menus.forEach(function (menu) {
+    menuReviewCount = menuReviewCount + menu.menu_reviews.length;
+  });
+  detailTabButtons[0].textContent = "🍲 메뉴 " + restaurant.menus.length + " · 리뷰 " + menuReviewCount;
   if (detailTabStoreId === restaurant.id) {
     showDetailTab(currentDetailTab);
   } else {
-    showDetailTab("review");
+    showDetailTab("menu");
   }
   detailTabStoreId = restaurant.id;
-  renderReviews(restaurant);
 
   // 🆕 더 알아보기: 카카오맵(영업시간 · 메뉴) · 블로그 리뷰 링크
   if (restaurant.kakao_url) {
@@ -299,62 +277,46 @@ backButton.addEventListener("click", function () {
   }
 });
 
-// 10. 별 누르기
+// 10. 🆕 내 별점: 별을 누르면 바로 저장해요 (입력 칸 · 버튼 없이)
 starButtons.forEach(function (star) {
-  star.addEventListener("click", function () {
+  star.addEventListener("click", async function () {
+    const userName = needMyName(); // 이름이 없으면 한 번 물어보기
+    if (userName === "") {
+      return;
+    }
+
     selectedScore = Number(star.dataset.score);
     paintStars();
+    quickRatingHint.textContent = "저장하는 중…";
+
+    // 별점만 저장 (예전에 남긴 한 줄 평이 있어도 지우지 않아요)
+    const { error } = await db.from("ratings").upsert(
+      {
+        restaurant_id: selectedRestaurant.id,
+        user_name: userName,
+        score: selectedScore
+      },
+      { onConflict: "restaurant_id,user_name" }
+    );
+
+    if (error) {
+      alert("별점을 저장하지 못했어요. 다시 시도해 주세요.");
+      console.log("별점 저장 실패:", error);
+      return;
+    }
+
+    await refreshDetail();
+    quickRatingHint.textContent = "✓ " + selectedScore + "점으로 저장했어요!";
   });
 });
 
-// 10-1. 🆕 [고치기] 누르면 입력 칸 열기, [취소] 누르면 다시 카드로
-myRatingEditButton.addEventListener("click", function () {
-  myRatingBox.after(ratingForm); // 카드가 있던 자리에서 바로 고치기 (목록 위)
-  myRatingBox.hidden = true;
-  ratingForm.hidden = false;
-  cancelRatingButton.hidden = false;
-});
-
-cancelRatingButton.addEventListener("click", function () {
-  showDetail(selectedRestaurant, cameFromSearch); // 원래대로 (고치던 별은 되돌려요)
-});
-
-// 11. 별점 남기기 버튼
-submitRatingButton.addEventListener("click", async function () {
-  const userName = userNameInput.value.trim();
-
-  if (userName === "") {
-    alert("이름(닉네임)을 적어 주세요!");
-    return;
+// 10-1. 🆕 이름 바꾸기 (잘못 적었을 때)
+changeNameButton.addEventListener("click", function () {
+  const newName = (prompt("새 이름(닉네임)을 적어 주세요!", userNameInput.value) || "").trim().slice(0, 10);
+  if (newName !== "") {
+    rememberName(newName);
+    showDetail(selectedRestaurant, cameFromSearch); // 새 이름으로 내 별점 다시 찾기
   }
-  if (selectedScore === 0) {
-    alert("별을 1개 이상 눌러 주세요!");
-    return;
-  }
-
-  const { error } = await db.from("ratings").upsert(
-    {
-      restaurant_id: selectedRestaurant.id,
-      user_name: userName,
-      score: selectedScore,
-      comment: reviewCommentInput.value.trim() || null
-    },
-    { onConflict: "restaurant_id,user_name" }
-  );
-
-  if (error) {
-    alert("별점을 저장하지 못했어요. 다시 시도해 주세요.");
-    console.log("별점 저장 실패:", error);
-    return;
-  }
-  rememberName(userName);
-  alert("별점을 남겼어요! ⭐");
-
-  const data = await loadRestaurants();
-  const updated = data.find(function (restaurant) {
-    return restaurant.id === selectedRestaurant.id;
-  });
-  showDetail(updated, cameFromSearch);
 });
 
 // 12. 게시판에서 맛집 불러와서 보여주기
@@ -1165,42 +1127,7 @@ saveEditButton.addEventListener("click", async function () {
   showDetail(updated, cameFromSearch);
 });
 
-// 28. 가게 리뷰(한 줄 평) 목록 그리기
-function renderReviews(restaurant) {
-  reviewList.innerHTML = "";
-
-  const reviews = restaurant.ratings.filter(function (rating) {
-    return rating.comment;
-  });
-
-  reviews.sort(function (a, b) {
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
-
-  // (리뷰 개수는 이제 탭 글자에 보여줘요: 💬 리뷰 N)
-
-  if (reviews.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "review-empty";
-    empty.textContent = "아직 한 줄 평이 없어요. 첫 번째로 남겨 보세요!";
-    reviewList.append(empty);
-    return;
-  }
-
-  reviews.forEach(function (review) {
-    const item = document.createElement("div");
-    item.className = "review-item";
-
-    const text = document.createElement("p");
-    text.textContent = "★" + review.score + "  \"" + review.comment + "\"";
-
-    const writer = document.createElement("span");
-    writer.textContent = "- " + review.user_name;
-
-    item.append(text, writer);
-    reviewList.append(item);
-  });
-}
+// 28. (가게 한 줄 평은 없앴어요. 리뷰는 메뉴마다 남겨요 → 29번)
 
 // 29. 메뉴 목록 그리기
 function renderMenus(restaurant) {
@@ -1945,8 +1872,8 @@ function resortList() {
   listArea.scrollTop = 0;
 }
 
-// 40. 🎀 자세히 보기 탭 (💬 리뷰 / 🍲 메뉴 / 🔍 더 알아보기)
-let currentDetailTab = "review"; // 지금 보고 있는 탭
+// 40. 🎀 자세히 보기 탭 (🍲 메뉴 · 리뷰 / 🔍 더 알아보기)
+let currentDetailTab = "menu";   // 지금 보고 있는 탭
 let detailTabStoreId = null;     // 탭을 보고 있던 가게
 
 function showDetailTab(panelName) {
