@@ -322,8 +322,13 @@ h1 {
 }
 .list-area,
 .detail-area,
-.add-area {
+.add-area,
+.new-area {
   overflow-y: auto;
+}
+
+.new-area {
+  flex: 1;
 }
 .pager {
   display: flex;
@@ -716,6 +721,70 @@ h1 {
   }
 }
 
+/* 🆕 탭 줄: [📋 우리 맛집] [🆕 새로운 가게] */
+.tabs {
+  display: flex;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 10px 4px;
+  font-size: 15px;
+  color: #888888;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: #363636;
+}
+
+.tab[aria-selected="true"] {
+  color: #c9335d;
+  font-weight: bold;
+  border-bottom-color: #c9335d;
+}
+
+/* 🆕 새로운 가게 카드 */
+.new-count {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0 0 8px;
+}
+
+.new-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.new-kakao,
+.new-add {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.new-kakao {
+  background-color: white;
+  color: #363636;
+  border: 1px solid #dddddd;
+  text-decoration: none;
+}
+
+.new-add {
+  background-color: #c9335d;
+  color: white;
+  border: none;
+}
+
 /* 🆕 상황 골라보기 버튼 줄 */
 .situation-filter {
   display: flex;
@@ -822,7 +891,8 @@ h1 {
 
   .list-area,
   .detail-area,
-  .add-area {
+  .add-area,
+  .new-area {
     overflow-y: visible;
   }
 }
