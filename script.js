@@ -129,6 +129,10 @@ const LIST_PAGE_SIZE = 7;      // 목록에 한 번에 보여줄 개수
 let listPage = 1;               // 지금 보고 있는 목록 페이지
 let menuScore = 0;              // 메뉴 추가할 때 고른 별 개수
 
+// 🆕 거리 규칙
+const ADD_RADIUS = 2000;   // 맛집 추가: 회사에서 2km 안 (저녁 · 회식 장소까지)
+const LUNCH_RADIUS = 1000; // 점심 슬롯머신: 1km 안 (걸어서 15분쯤)
+
 // 우리 사이트의 음식 종류 7가지 (기획서 규칙)
 const CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페·디저트", "기타"];
 
@@ -168,6 +172,15 @@ function distanceOf(restaurant) {
 
 function walkMinutes(meters) {
   return Math.max(1, Math.round(meters / 67)); // 어른 걸음 1분 ≈ 67m
+}
+
+// 🆕 거리 글자: 1000m 미만은 "850m", 이상은 "1.3km"
+function distanceText(meters) {
+  meters = Number(meters);
+  if (meters < 1000) {
+    return meters + "m";
+  }
+  return (meters / 1000).toFixed(1) + "km";
 }
 
 // 6-1. 별점 글자 만들기
@@ -663,7 +676,7 @@ function searchPlaces() {
     showMorePlaces();
   }, {
     location: center,
-    radius: 1000,
+    radius: ADD_RADIUS,
     sort: kakao.maps.services.SortBy.DISTANCE
   });
 }
@@ -694,7 +707,7 @@ function showMorePlaces() {
 
     const infoText = document.createElement("p");
     const address = place.road_address_name || place.address_name;
-    infoText.textContent = toCategory(place.category_name) + " · " + place.distance + "m · " + address;
+    infoText.textContent = toCategory(place.category_name) + " · " + distanceText(place.distance) + " · " + address;
 
     item.append(nameText, infoText);
     searchResults.append(item);
@@ -930,9 +943,9 @@ kakao.maps.event.addListener(map, "click", function (mouseEvent) {
         place.distance = String(Math.round(line.getLength()));
       });
 
-      // 회사에서 1km 안의 가게만
+      // 회사에서 2km 안의 가게만
       nearby = nearby.filter(function (place) {
-        return Number(place.distance) <= 1000;
+        return Number(place.distance) <= ADD_RADIUS;
       });
 
       searchResults.innerHTML = "";
@@ -941,7 +954,7 @@ kakao.maps.event.addListener(map, "click", function (mouseEvent) {
       shownCount = 0;
 
       if (foundPlaces.length === 0) {
-        searchResults.textContent = "누른 곳 근처에 맛집이 없어요. 가게 이름 위를 정확히 눌러 보세요. (회사에서 1km 안만 돼요)";
+        searchResults.textContent = "누른 곳 근처에 맛집이 없어요. 가게 이름 위를 정확히 눌러 보세요. (회사에서 2km 안만 돼요)";
         return;
       }
 
@@ -1328,10 +1341,20 @@ function openRandomPick() {
 
   // 🆕 "전체"일 때는 카페·디저트는 빼요 (밥이 아니니까!)
   //     카페·디저트를 직접 골랐을 때는 카페 중에서 뽑아요
+  const rules = []; // 화면에 보여줄 규칙 (예: 카페 제외 · 걸어서 15분 안)
   if (selectedCategory === "전체") {
     randomCandidates = randomCandidates.filter(function (restaurant) {
       return categoryOf(restaurant) !== "카페·디저트";
     });
+    rules.push("카페 제외");
+  }
+
+  // 🆕 회식·저녁이 아니면 1km 안에서만 뽑아요 (점심시간 안에 다녀올 수 있게!)
+  if (selectedSituation !== "회식·저녁") {
+    randomCandidates = randomCandidates.filter(function (restaurant) {
+      return restaurant.distance <= LUNCH_RADIUS;
+    });
+    rules.push("걸어서 15분 안");
   }
 
   if (randomCandidates.length === 0) {
@@ -1349,11 +1372,16 @@ function openRandomPick() {
       scopeParts.push(situation.label);
     }
   });
+  let scopeText = "";
   if (scopeParts.length === 0) {
-    randomScope.textContent = "밥집 " + randomCandidates.length + "곳 중에서 골라요 (카페 제외)";
+    scopeText = "밥집 " + randomCandidates.length + "곳 중에서 골라요";
   } else {
-    randomScope.textContent = scopeParts.join(" · ") + " " + randomCandidates.length + "곳 중에서 골라요";
+    scopeText = scopeParts.join(" · ") + " " + randomCandidates.length + "곳 중에서 골라요";
   }
+  if (rules.length > 0) {
+    scopeText = scopeText + " (" + rules.join(" · ") + ")";
+  }
+  randomScope.textContent = scopeText;
 
   randomPicked = null;
   randomOverlay.hidden = false;
@@ -1592,7 +1620,7 @@ function makeNewCard(place) {
   const kind = place.category_name.split(" > ").pop();
   const minutes = walkMinutes(Number(place.distance));
   const infoText = document.createElement("p");
-  infoText.textContent = kind + " · 🚶 걸어서 약 " + minutes + "분 (" + place.distance + "m)";
+  infoText.textContent = kind + " · 🚶 걸어서 약 " + minutes + "분 (" + distanceText(place.distance) + ")";
 
   // 눌렀을 때만 나오는 버튼 2개
   const actions = document.createElement("div");
@@ -1680,7 +1708,7 @@ manualOpenButton.addEventListener("click", function () {
 
   manualPosition = null;
   manualAddress = "";
-  manualPlaceText.textContent = "📍 지도에서 가게 위치를 눌러 주세요 (회사 1km 안)";
+  manualPlaceText.textContent = "📍 지도에서 가게 위치를 눌러 주세요 (회사 2km 안)";
   manualPlaceText.classList.remove("done");
   manualNameInput.value = searchInput.value.trim(); // 검색한 이름을 미리 채워 두기
   manualCategorySelect.value = "한식";
@@ -1711,8 +1739,8 @@ cancelManualButton.addEventListener("click", closeManualForm);
 // 지도에서 누른 곳에 분홍 별 핀 꽂기 (다시 누르면 옮겨 가요)
 function placeManualPin(position) {
   const line = new kakao.maps.Polyline({ path: [center, position] });
-  if (line.getLength() > 1000) {
-    alert("회사에서 1km 안의 가게만 추가할 수 있어요!");
+  if (line.getLength() > ADD_RADIUS) {
+    alert("회사에서 2km 안의 가게만 추가할 수 있어요!");
     return;
   }
 
