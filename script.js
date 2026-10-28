@@ -57,11 +57,15 @@ const detailArea = document.querySelector(".detail-area");
 const detailName = document.querySelector(".detail-name");
 const detailInfo = document.querySelector(".detail-info");
 const detailRating = document.querySelector(".detail-rating");
+const detailTags = document.querySelector(".detail-tags");               // 🎀 자세히 보기 태그 줄
+const detailTabButtons = document.querySelectorAll(".detail-tabs .tab"); // 🎀 리뷰 · 메뉴 · 더 알아보기 탭
+const detailPanels = document.querySelectorAll(".detail-panel");
 const backButton = document.querySelector(".back-button");
 const userNameInput = document.querySelector("#user-name");
-const starButtons = document.querySelectorAll(".detail-area .rating-form .star");
+const starButtons = document.querySelectorAll(".quick-stars .star"); // 🆕 내 별점 (누르면 바로 저장)
 const addStarButtons = document.querySelectorAll(".add-form .star");
-const submitRatingButton = document.querySelector(".submit-rating");
+const quickRatingHint = document.querySelector(".quick-rating-hint");    // 🆕 "눌러서 별점 주기" 안내
+const changeNameButton = document.querySelector(".change-name");
 const addArea = document.querySelector(".add-area");
 const addBackButton = document.querySelector(".add-back-button");
 const searchInput = document.querySelector("#search-input");
@@ -94,8 +98,6 @@ const manualUserNameInput = document.querySelector("#manual-user-name");
 const manualStarButtons = document.querySelectorAll(".manual-form .star");
 const submitManualButton = document.querySelector(".submit-manual");
 const cancelManualButton = document.querySelector(".cancel-manual");
-const reviewCommentInput = document.querySelector("#review-comment");
-const reviewList = document.querySelector(".review-list");
 const kakaoLink = document.querySelector(".kakao-link");
 const blogLink = document.querySelector(".blog-link");
 const menuAddToggle = document.querySelector(".menu-add-toggle");
@@ -105,11 +107,8 @@ const menuPriceInput = document.querySelector("#menu-price");
 const saveMenuButton = document.querySelector(".save-menu");
 const cancelMenuButton = document.querySelector(".cancel-menu");
 const menuList = document.querySelector(".menu-list");
-const menuReviewForm = document.querySelector(".menu-review-form");
-const menuStarButtons = document.querySelectorAll(".menu-review-form .star");
-const menuReviewComment = document.querySelector("#menu-review-comment");
-const saveMenuReviewButton = document.querySelector(".save-menu-review");
-const cancelMenuReviewButton = document.querySelector(".cancel-menu-review");
+const menuStarButtons = document.querySelectorAll(".menu-add-form .star"); // 메뉴 추가 칸의 별
+const menuAddComment = document.querySelector("#menu-add-comment");        // 메뉴 추가 칸의 한 줄 평
 
 // 5. 기억해 둘 것들
 let selectedRestaurant = null; // 지금 보고 있는 가게
@@ -124,14 +123,24 @@ let cameFromSearch = false;    // 검색 결과에서 자세히 보기로 왔는
 let addScore = 0;              // 맛집 추가할 때 고른 별 개수
 let selectedCategory = "전체"; // 목록에서 고른 음식 종류
 let selectedSituation = "전체"; // 🆕 목록에서 고른 상황 (점심 / 회식·저녁)
+let sortMode = "rating";        // 🆕 정렬 방법 (rating 별점 / distance 거리 / recent 최근)
 let cards = [];                // 목록에 그린 맛집 카드들
 const LIST_PAGE_SIZE = 7;      // 목록에 한 번에 보여줄 개수
 let listPage = 1;               // 지금 보고 있는 목록 페이지
-let selectedMenu = null;        // 리뷰 쓰는 중인 메뉴
-let menuScore = 0;              // 메뉴 리뷰에서 고른 별 개수
+let menuScore = 0;              // 메뉴 추가할 때 고른 별 개수
+
+// 🆕 거리 규칙
+const ADD_RADIUS = 2000;   // 맛집 추가: 회사에서 2km 안 (저녁 · 회식 장소까지)
+const LUNCH_RADIUS = 1000; // 점심 슬롯머신: 1km 안 (걸어서 15분쯤)
 
 // 우리 사이트의 음식 종류 7가지 (기획서 규칙)
 const CATEGORIES = ["한식", "중식", "일식", "양식", "분식", "카페·디저트", "기타"];
+
+// 🎀 음식 종류마다 카드에 붙일 그림
+const CATEGORY_EMOJI = {
+  "한식": "🍚", "중식": "🥟", "일식": "🍣", "양식": "🍝",
+  "분식": "🍢", "카페·디저트": "☕", "기타": "🍴"
+};
 
 // 🆕 상황 태그 2가지 (저장하는 글자 → 화면에 보여줄 글자)
 const SITUATIONS = [
@@ -151,6 +160,27 @@ function averageScore(ratings) {
   });
 
   return sum / ratings.length;
+}
+
+// 6-0. 🆕 회사에서 가게까지 거리(m)와 걸어서 몇 분인지
+function distanceOf(restaurant) {
+  const line = new kakao.maps.Polyline({
+    path: [center, new kakao.maps.LatLng(restaurant.lat, restaurant.lng)]
+  });
+  return Math.round(line.getLength());
+}
+
+function walkMinutes(meters) {
+  return Math.max(1, Math.round(meters / 67)); // 어른 걸음 1분 ≈ 67m
+}
+
+// 🆕 거리 글자: 1000m 미만은 "850m", 이상은 "1.3km"
+function distanceText(meters) {
+  meters = Number(meters);
+  if (meters < 1000) {
+    return meters + "m";
+  }
+  return (meters / 1000).toFixed(1) + "km";
 }
 
 // 6-1. 별점 글자 만들기
@@ -182,7 +212,7 @@ function showDetail(restaurant, fromSearch) {
   }
 
   selectedRestaurant = restaurant;
-  // 내가 이미 남긴 별점이 있으면 미리 채워 두기
+  // 내가 이미 남긴 별점이 있으면 별을 칠해 두기
   const myName = userNameInput.value.trim();
   const myRating = restaurant.ratings.find(function (rating) {
     return rating.user_name === myName;
@@ -190,20 +220,42 @@ function showDetail(restaurant, fromSearch) {
 
   if (myRating) {
     selectedScore = myRating.score;
-    reviewCommentInput.value = myRating.comment || "";
-    submitRatingButton.textContent = "별점 고치기";
+    quickRatingHint.textContent = myName + " 님의 별점";
   } else {
     selectedScore = 0;
-    reviewCommentInput.value = "";
-    submitRatingButton.textContent = "별점 남기기";
+    quickRatingHint.textContent = "가 봤다면 눌러 주세요!";
   }
+  changeNameButton.hidden = myName === "";
   paintStars();
 
   detailName.textContent = restaurant.name;
   manualBadge.hidden = !isManual(restaurant); // 🆕 직접 추가한 가게면 꼬리표
-  detailInfo.textContent = [restaurant.category].concat(situationLabels(restaurant)).join(" · ");
+  detailInfo.textContent = CATEGORY_EMOJI[categoryOf(restaurant)] + " " + restaurant.category;
   detailRating.textContent = ratingText(restaurant.ratings);
-  renderReviews(restaurant);
+  detailRating.className = restaurant.ratings.length > 0 ? "detail-rating card-rating" : "detail-rating card-rating none";
+
+  // 🎀 상황 태그는 아래 줄에 꼬리표로
+  detailTags.innerHTML = "";
+  situationLabels(restaurant).forEach(function (label) {
+    const tag = document.createElement("span");
+    tag.className = "card-tag";
+    tag.textContent = label;
+    detailTags.append(tag);
+  });
+  detailTags.hidden = detailTags.children.length === 0;
+
+  // 🎀 탭 글자에 개수 붙이고, 새 가게면 메뉴 · 리뷰 탭부터 (같은 가게면 보던 탭 그대로)
+  let menuReviewCount = 0;
+  restaurant.menus.forEach(function (menu) {
+    menuReviewCount = menuReviewCount + menu.menu_reviews.length;
+  });
+  detailTabButtons[0].textContent = "🍲 메뉴 " + restaurant.menus.length + " · 리뷰 " + menuReviewCount;
+  if (detailTabStoreId === restaurant.id) {
+    showDetailTab(currentDetailTab);
+  } else {
+    showDetailTab("menu");
+  }
+  detailTabStoreId = restaurant.id;
 
   // 🆕 더 알아보기: 카카오맵(영업시간 · 메뉴) · 블로그 리뷰 링크
   if (restaurant.kakao_url) {
@@ -238,50 +290,46 @@ backButton.addEventListener("click", function () {
   }
 });
 
-// 10. 별 누르기
+// 10. 🆕 내 별점: 별을 누르면 바로 저장해요 (입력 칸 · 버튼 없이)
 starButtons.forEach(function (star) {
-  star.addEventListener("click", function () {
+  star.addEventListener("click", async function () {
+    const userName = needMyName(); // 이름이 없으면 한 번 물어보기
+    if (userName === "") {
+      return;
+    }
+
     selectedScore = Number(star.dataset.score);
     paintStars();
+    quickRatingHint.textContent = "저장하는 중…";
+
+    // 별점만 저장 (예전에 남긴 한 줄 평이 있어도 지우지 않아요)
+    const { error } = await db.from("ratings").upsert(
+      {
+        restaurant_id: selectedRestaurant.id,
+        user_name: userName,
+        score: selectedScore
+      },
+      { onConflict: "restaurant_id,user_name" }
+    );
+
+    if (error) {
+      alert("별점을 저장하지 못했어요. 다시 시도해 주세요.");
+      console.log("별점 저장 실패:", error);
+      return;
+    }
+
+    await refreshDetail();
+    quickRatingHint.textContent = "✓ " + selectedScore + "점으로 저장했어요!";
   });
 });
 
-// 11. 별점 남기기 버튼
-submitRatingButton.addEventListener("click", async function () {
-  const userName = userNameInput.value.trim();
-
-  if (userName === "") {
-    alert("이름(닉네임)을 적어 주세요!");
-    return;
+// 10-1. 🆕 이름 바꾸기 (잘못 적었을 때)
+changeNameButton.addEventListener("click", function () {
+  const newName = (prompt("새 이름(닉네임)을 적어 주세요!", userNameInput.value) || "").trim().slice(0, 10);
+  if (newName !== "") {
+    rememberName(newName);
+    showDetail(selectedRestaurant, cameFromSearch); // 새 이름으로 내 별점 다시 찾기
   }
-  if (selectedScore === 0) {
-    alert("별을 1개 이상 눌러 주세요!");
-    return;
-  }
-
-  const { error } = await db.from("ratings").upsert(
-    {
-      restaurant_id: selectedRestaurant.id,
-      user_name: userName,
-      score: selectedScore,
-      comment: reviewCommentInput.value.trim() || null
-    },
-    { onConflict: "restaurant_id,user_name" }
-  );
-
-  if (error) {
-    alert("별점을 저장하지 못했어요. 다시 시도해 주세요.");
-    console.log("별점 저장 실패:", error);
-    return;
-  }
-  rememberName(userName);
-  alert("별점을 남겼어요! ⭐");
-
-  const data = await loadRestaurants();
-  const updated = data.find(function (restaurant) {
-    return restaurant.id === selectedRestaurant.id;
-  });
-  showDetail(updated, cameFromSearch);
 });
 
 // 12. 게시판에서 맛집 불러와서 보여주기
@@ -302,14 +350,11 @@ async function loadRestaurants() {
   markers = [];
   cards = [];
 
-  // 별점 높은 순으로 줄 세우기 (별점 없는 가게는 맨 아래)
-  data.sort(function (a, b) {
-    const diff = averageScore(b.ratings) - averageScore(a.ratings);
-    if (diff !== 0) {
-      return diff;
-    }
-    return b.ratings.length - a.ratings.length;
+  // 🆕 고른 정렬 방법으로 줄 세우기
+  data.forEach(function (restaurant) {
+    restaurant.distance = distanceOf(restaurant);
   });
+  data.sort(compareRestaurants);
 
   // 맛집이 하나도 없을 때 (빈 상태)
   if (data.length === 0) {
@@ -349,11 +394,7 @@ async function loadRestaurants() {
 
     listActions.append(topAddButton, randomButton);
     listArea.append(listActions);
-    // 🆕 맛집 추가 안내 문구
-    const addHint = document.createElement("p");
-    addHint.className = "list-hint";
-    addHint.textContent = "💡 지도에서 가게를 눌러 추가하고 싶다면, 먼저 위의 [+ 맛집 추가]를 눌러 주세요!";
-    listArea.append(addHint);
+    // (맛집 추가 안내 문구는 맨 위 제목 밑으로 옮겼어요 → index.html)
 
     // 🆕 음식 종류 골라보기
     const filterSelect = document.createElement("select");
@@ -409,8 +450,31 @@ async function loadRestaurants() {
     });
     listArea.append(situationRow);
 
-    // 음식 종류 드롭다운은 상황 버튼 줄 밑에 두기
-    listArea.append(filterSelect);
+    // 🆕 정렬 고르기
+    const sortSelect = document.createElement("select");
+    sortSelect.className = "category-filter";
+    sortSelect.setAttribute("aria-label", "정렬");
+    SORT_OPTIONS.forEach(function (sortOption) {
+      const option = document.createElement("option");
+      option.value = sortOption.value;
+      option.textContent = sortOption.label;
+      sortSelect.append(option);
+    });
+    sortSelect.value = sortMode;
+    sortSelect.addEventListener("change", function () {
+      sortMode = sortSelect.value;
+      try {
+        localStorage.setItem("sortMode", sortMode); // 다음에 열어도 기억하기
+      } catch (error) {}
+      resortList();
+    });
+
+    // 음식 종류 드롭다운 + 정렬 드롭다운을 한 줄에 나란히 (상황 버튼 줄 밑에)
+    filterSelect.setAttribute("aria-label", "음식 종류");
+    const filterRow = document.createElement("div");
+    filterRow.className = "filter-row";
+    filterRow.append(filterSelect, sortSelect);
+    listArea.append(filterRow);
   }
 
 
@@ -419,13 +483,29 @@ async function loadRestaurants() {
     const item = document.createElement("div");
     item.className = "restaurant-item";
 
+    // 🎀 왼쪽 동그라미 그림 (음식 종류)
+    const icon = document.createElement("span");
+    icon.className = "card-icon";
+    icon.textContent = CATEGORY_EMOJI[categoryOf(restaurant)];
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+
     const nameText = document.createElement("strong");
     nameText.textContent = restaurant.name;
 
+    // 🎀 별점은 분홍색으로 눈에 띄게, 나머지는 작은 회색 글자
     const infoText = document.createElement("p");
-    infoText.textContent = restaurant.category + " · " + ratingText(restaurant.ratings);
+    const ratingSpan = document.createElement("span");
+    ratingSpan.className = restaurant.ratings.length > 0 ? "card-rating" : "card-rating none";
+    ratingSpan.textContent = ratingText(restaurant.ratings);
+    infoText.append(
+      ratingSpan,
+      " · " + restaurant.category + " · 🚶 " + walkMinutes(restaurant.distance) + "분"
+    );
 
-    item.append(nameText, infoText);
+    body.append(nameText, infoText);
+    item.append(icon, body);
 
     // 🆕 상황 태그가 있으면 카드에 작은 꼬리표로 보여주기
     const labels = situationLabels(restaurant);
@@ -438,7 +518,7 @@ async function loadRestaurants() {
         tag.textContent = label;
         tagLine.append(tag);
       });
-      item.append(tagLine);
+      body.append(tagLine);
     }
 
     listArea.append(item);
@@ -448,16 +528,33 @@ async function loadRestaurants() {
       showDetail(restaurant);
     });
 
-    // 지도에 핀 추가
-    const marker = new kakao.maps.Marker({
+    // 🎀 지도에 분홍 별점 핀 추가 (평가 없으면 🍴, 마우스를 올리면 가게 이름)
+    const pin = document.createElement("div");
+    pin.className = "map-pin";
+    const pinScore = document.createElement("span");
+    if (restaurant.ratings.length > 0) {
+      pinScore.textContent = "★ " + averageScore(restaurant.ratings).toFixed(1);
+    } else {
+      pinScore.textContent = "🍴";
+      pin.classList.add("no-rating");
+    }
+    const pinName = document.createElement("span");
+    pinName.className = "map-pin-name";
+    pinName.textContent = restaurant.name;
+    pin.append(pinScore, pinName);
+    pin.addEventListener("click", function () {
+      showDetail(restaurant);
+    });
+
+    const marker = new kakao.maps.CustomOverlay({
       position: new kakao.maps.LatLng(restaurant.lat, restaurant.lng),
+      content: pin,
+      yAnchor: 1,
+      clickable: true,
+      zIndex: 20, // 회사 핀(10)보다 위에 (가게 정보가 더 중요하니까)
       map: map
     });
     markers.push(marker);
-
-    kakao.maps.event.addListener(marker, "click", function () {
-      showDetail(restaurant);
-    });
   });
     // 🆕 목록 더보기 버튼
   // 🆕 페이지 넘기기 버튼
@@ -579,7 +676,7 @@ function searchPlaces() {
     showMorePlaces();
   }, {
     location: center,
-    radius: 1000,
+    radius: ADD_RADIUS,
     sort: kakao.maps.services.SortBy.DISTANCE
   });
 }
@@ -610,7 +707,7 @@ function showMorePlaces() {
 
     const infoText = document.createElement("p");
     const address = place.road_address_name || place.address_name;
-    infoText.textContent = toCategory(place.category_name) + " · " + place.distance + "m · " + address;
+    infoText.textContent = toCategory(place.category_name) + " · " + distanceText(place.distance) + " · " + address;
 
     item.append(nameText, infoText);
     searchResults.append(item);
@@ -846,9 +943,9 @@ kakao.maps.event.addListener(map, "click", function (mouseEvent) {
         place.distance = String(Math.round(line.getLength()));
       });
 
-      // 회사에서 1km 안의 가게만
+      // 회사에서 2km 안의 가게만
       nearby = nearby.filter(function (place) {
-        return Number(place.distance) <= 1000;
+        return Number(place.distance) <= ADD_RADIUS;
       });
 
       searchResults.innerHTML = "";
@@ -857,7 +954,7 @@ kakao.maps.event.addListener(map, "click", function (mouseEvent) {
       shownCount = 0;
 
       if (foundPlaces.length === 0) {
-        searchResults.textContent = "누른 곳 근처에 맛집이 없어요. 가게 이름 위를 정확히 눌러 보세요. (회사에서 1km 안만 돼요)";
+        searchResults.textContent = "누른 곳 근처에 맛집이 없어요. 가게 이름 위를 정확히 눌러 보세요. (회사에서 2km 안만 돼요)";
         return;
       }
 
@@ -1043,48 +1140,10 @@ saveEditButton.addEventListener("click", async function () {
   showDetail(updated, cameFromSearch);
 });
 
-// 28. 가게 리뷰(한 줄 평) 목록 그리기
-function renderReviews(restaurant) {
-  reviewList.innerHTML = "";
-
-  const reviews = restaurant.ratings.filter(function (rating) {
-    return rating.comment;
-  });
-
-  reviews.sort(function (a, b) {
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
-
-  const title = document.createElement("strong");
-  title.textContent = "🏪 가게 리뷰 (" + reviews.length + ")";
-  reviewList.append(title);
-
-  if (reviews.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "review-empty";
-    empty.textContent = "아직 한 줄 평이 없어요. 첫 번째로 남겨 보세요!";
-    reviewList.append(empty);
-    return;
-  }
-
-  reviews.forEach(function (review) {
-    const item = document.createElement("div");
-    item.className = "review-item";
-
-    const text = document.createElement("p");
-    text.textContent = "★" + review.score + "  \"" + review.comment + "\"";
-
-    const writer = document.createElement("span");
-    writer.textContent = "- " + review.user_name;
-
-    item.append(text, writer);
-    reviewList.append(item);
-  });
-}
+// 28. (가게 한 줄 평은 없앴어요. 리뷰는 메뉴마다 남겨요 → 29번)
 
 // 29. 메뉴 목록 그리기
 function renderMenus(restaurant) {
-  menuReviewForm.hidden = true;
   menuList.innerHTML = "";
   const menus = restaurant.menus;
 
@@ -1107,7 +1166,7 @@ function renderMenus(restaurant) {
     const item = document.createElement("div");
     item.className = "menu-item";
 
-    // 윗줄: 메뉴 이름 / 가격 · 별점 / [리뷰] 버튼
+    // 윗줄: 메뉴 이름 / 가격 · 별점
     const top = document.createElement("div");
     top.className = "menu-top";
 
@@ -1123,22 +1182,27 @@ function renderMenus(restaurant) {
     const info = document.createElement("span");
     info.textContent = infoText;
 
-    const reviewButton = document.createElement("button");
-    reviewButton.className = "menu-review-button";
-    const mine = menu.menu_reviews.find(function (review) {
-      return review.user_name === myName;
-    });
-    if (mine) {
-      reviewButton.textContent = "리뷰 고치기";
-    } else {
-      reviewButton.textContent = "리뷰";
-    }
-    reviewButton.addEventListener("click", function () {
-      openMenuReview(menu, item);
+    top.append(nameText, info);
+    item.append(top);
+
+    // 🆕 작은 [수정 · 별점] [삭제] 버튼 (메뉴 고치기 + 내 별점 남기기를 한 곳에서)
+    const tools = document.createElement("div");
+    tools.className = "menu-tools";
+
+    const editMenuButton = document.createElement("button");
+    editMenuButton.textContent = "수정 · 별점";
+    editMenuButton.addEventListener("click", function () {
+      openMenuEdit(menu, item);
     });
 
-    top.append(nameText, info, reviewButton);
-    item.append(top);
+    const deleteMenuButton = document.createElement("button");
+    deleteMenuButton.textContent = "삭제";
+    deleteMenuButton.addEventListener("click", function () {
+      deleteMenu(menu);
+    });
+
+    tools.append(editMenuButton, deleteMenuButton);
+    // (버튼 줄은 한 줄 평 아래, 칸 맨 끝에 붙여요 → 아래 "menuList.append" 바로 앞)
 
     // 아랫줄: 메뉴 한 줄 평들 (최신순)
     const comments = menu.menu_reviews.filter(function (review) {
@@ -1154,6 +1218,7 @@ function renderMenus(restaurant) {
       item.append(comment);
     });
 
+    item.append(tools); // 🆕 내용 다음에 버튼
     menuList.append(item);
   });
 }
@@ -1165,24 +1230,30 @@ menuAddToggle.addEventListener("click", function () {
 });
 
 cancelMenuButton.addEventListener("click", function () {
-  menuNameInput.value = "";
-  menuPriceInput.value = "";
+  resetMenuAddForm();
   menuAddForm.hidden = true;
 });
+
+// 메뉴 추가 칸 비우기
+function resetMenuAddForm() {
+  menuNameInput.value = "";
+  menuPriceInput.value = "";
+  menuAddComment.value = "";
+  menuScore = 0;
+  paintStars(menuStarButtons, menuScore);
+}
 
 // 31. 메뉴 추가하기
 saveMenuButton.addEventListener("click", async function () {
   const menuName = menuNameInput.value.trim();
   const priceText = menuPriceInput.value.trim();
-  const userName = userNameInput.value.trim();
 
   if (menuName === "") {
     alert("메뉴 이름을 적어 주세요!");
     return;
   }
+  const userName = needMyName(); // 🆕 이름이 없으면 물어보기
   if (userName === "") {
-    alert("위쪽 '내 이름(닉네임)' 칸에 이름을 먼저 적어 주세요!");
-    userNameInput.focus();
     return;
   }
 
@@ -1191,12 +1262,12 @@ saveMenuButton.addEventListener("click", async function () {
     price = Number(priceText);
   }
 
-  const { error } = await db.from("menus").insert({
+  const { data: newMenus, error } = await db.from("menus").insert({
     restaurant_id: selectedRestaurant.id,
     name: menuName,
     price: price,
     created_by: userName
-  });
+  }).select();
 
   if (error) {
     if (error.code === "23505") {
@@ -1208,9 +1279,22 @@ saveMenuButton.addEventListener("click", async function () {
     return;
   }
 
+  // 🆕 별을 골랐으면 메뉴 별점도 같이 저장
+  if (menuScore > 0) {
+    const { error: reviewError } = await db.from("menu_reviews").insert({
+      menu_id: newMenus[0].id,
+      user_name: userName,
+      score: menuScore,
+      comment: menuAddComment.value.trim() || null
+    });
+    if (reviewError) {
+      alert("메뉴는 추가했지만 별점은 저장하지 못했어요. [수정 · 별점]에서 다시 남겨 주세요.");
+      console.log("메뉴 별점 저장 실패:", reviewError);
+    }
+  }
+
   rememberName(userName);
-  menuNameInput.value = "";
-  menuPriceInput.value = "";
+  resetMenuAddForm();
   alert(menuName + " 메뉴를 추가했어요! 🍲");
 
   const data = await loadRestaurants();
@@ -1220,31 +1304,7 @@ saveMenuButton.addEventListener("click", async function () {
   showDetail(updated, cameFromSearch);
 });
 
-// 32. 메뉴 리뷰 칸 열기 (누른 메뉴 아래로 옮겨 가기)
-function openMenuReview(menu, item) {
-  selectedMenu = menu;
-
-  const myName = userNameInput.value.trim();
-  const mine = menu.menu_reviews.find(function (review) {
-    return review.user_name === myName;
-  });
-
-  if (mine) {
-    menuScore = mine.score;
-    menuReviewComment.value = mine.comment || "";
-    saveMenuReviewButton.textContent = "리뷰 고치기";
-  } else {
-    menuScore = 0;
-    menuReviewComment.value = "";
-    saveMenuReviewButton.textContent = "리뷰 남기기";
-  }
-  paintStars(menuStarButtons, menuScore);
-
-  item.append(menuReviewForm);
-  menuReviewForm.hidden = false;
-}
-
-// 33. 메뉴 리뷰 별 누르기
+// 32. 메뉴 추가할 때 별 누르기
 menuStarButtons.forEach(function (star) {
   star.addEventListener("click", function () {
     menuScore = Number(star.dataset.score);
@@ -1252,49 +1312,7 @@ menuStarButtons.forEach(function (star) {
   });
 });
 
-cancelMenuReviewButton.addEventListener("click", function () {
-  menuReviewForm.hidden = true;
-});
-
-// 34. 메뉴 리뷰 남기기
-saveMenuReviewButton.addEventListener("click", async function () {
-  const userName = userNameInput.value.trim();
-
-  if (userName === "") {
-    alert("위쪽 '내 이름(닉네임)' 칸에 이름을 먼저 적어 주세요!");
-    userNameInput.focus();
-    return;
-  }
-  if (menuScore === 0) {
-    alert("별을 1개 이상 눌러 주세요!");
-    return;
-  }
-
-  const { error } = await db.from("menu_reviews").upsert(
-    {
-      menu_id: selectedMenu.id,
-      user_name: userName,
-      score: menuScore,
-      comment: menuReviewComment.value.trim() || null
-    },
-    { onConflict: "menu_id,user_name" }
-  );
-
-  if (error) {
-    alert("메뉴 리뷰를 저장하지 못했어요. 다시 시도해 주세요.");
-    console.log("메뉴 리뷰 저장 실패:", error);
-    return;
-  }
-
-  rememberName(userName);
-  alert(selectedMenu.name + " 리뷰를 남겼어요! ⭐");
-
-  const data = await loadRestaurants();
-  const updated = data.find(function (restaurant) {
-    return restaurant.id === selectedRestaurant.id;
-  });
-  showDetail(updated, cameFromSearch);
-});
+// (33~34. 따로 있던 메뉴 리뷰 칸은 [수정 · 별점] 으로 합쳤어요 → 41번)
 
 // 35. 화면 크기가 바뀌면 지도 크기 다시 맞추기
 window.addEventListener("resize", function () {
@@ -1321,6 +1339,24 @@ function openRandomPick() {
   // 골라보기에서 고른 음식 종류 + 상황 안에서만 뽑아요
   randomCandidates = restaurants.filter(matchesFilter);
 
+  // 🆕 "전체"일 때는 카페·디저트는 빼요 (밥이 아니니까!)
+  //     카페·디저트를 직접 골랐을 때는 카페 중에서 뽑아요
+  const rules = []; // 화면에 보여줄 규칙 (예: 카페 제외 · 걸어서 15분 안)
+  if (selectedCategory === "전체") {
+    randomCandidates = randomCandidates.filter(function (restaurant) {
+      return categoryOf(restaurant) !== "카페·디저트";
+    });
+    rules.push("카페 제외");
+  }
+
+  // 🆕 회식·저녁이 아니면 1km 안에서만 뽑아요 (점심시간 안에 다녀올 수 있게!)
+  if (selectedSituation !== "회식·저녁") {
+    randomCandidates = randomCandidates.filter(function (restaurant) {
+      return restaurant.distance <= LUNCH_RADIUS;
+    });
+    rules.push("걸어서 15분 안");
+  }
+
   if (randomCandidates.length === 0) {
     alert("지금 고른 조건에 맞는 맛집이 없어요. 골라보기를 바꿔 보세요!");
     return;
@@ -1336,11 +1372,16 @@ function openRandomPick() {
       scopeParts.push(situation.label);
     }
   });
+  let scopeText = "";
   if (scopeParts.length === 0) {
-    randomScope.textContent = "등록된 맛집 " + randomCandidates.length + "곳 중에서 골라요";
+    scopeText = "밥집 " + randomCandidates.length + "곳 중에서 골라요";
   } else {
-    randomScope.textContent = scopeParts.join(" · ") + " " + randomCandidates.length + "곳 중에서 골라요";
+    scopeText = scopeParts.join(" · ") + " " + randomCandidates.length + "곳 중에서 골라요";
   }
+  if (rules.length > 0) {
+    scopeText = scopeText + " (" + rules.join(" · ") + ")";
+  }
+  randomScope.textContent = scopeText;
 
   randomPicked = null;
   randomOverlay.hidden = false;
@@ -1577,9 +1618,9 @@ function makeNewCard(place) {
 
   // 예: "국밥 · 🚶 걸어서 약 5분 (320m)"  (어른 걸음 1분 ≈ 67m)
   const kind = place.category_name.split(" > ").pop();
-  const minutes = Math.max(1, Math.round(Number(place.distance) / 67));
+  const minutes = walkMinutes(Number(place.distance));
   const infoText = document.createElement("p");
-  infoText.textContent = kind + " · 🚶 걸어서 약 " + minutes + "분 (" + place.distance + "m)";
+  infoText.textContent = kind + " · 🚶 걸어서 약 " + minutes + "분 (" + distanceText(place.distance) + ")";
 
   // 눌렀을 때만 나오는 버튼 2개
   const actions = document.createElement("div");
@@ -1667,7 +1708,7 @@ manualOpenButton.addEventListener("click", function () {
 
   manualPosition = null;
   manualAddress = "";
-  manualPlaceText.textContent = "📍 지도에서 가게 위치를 눌러 주세요 (회사 1km 안)";
+  manualPlaceText.textContent = "📍 지도에서 가게 위치를 눌러 주세요 (회사 2km 안)";
   manualPlaceText.classList.remove("done");
   manualNameInput.value = searchInput.value.trim(); // 검색한 이름을 미리 채워 두기
   manualCategorySelect.value = "한식";
@@ -1698,8 +1739,8 @@ cancelManualButton.addEventListener("click", closeManualForm);
 // 지도에서 누른 곳에 분홍 별 핀 꽂기 (다시 누르면 옮겨 가요)
 function placeManualPin(position) {
   const line = new kakao.maps.Polyline({ path: [center, position] });
-  if (line.getLength() > 1000) {
-    alert("회사에서 1km 안의 가게만 추가할 수 있어요!");
+  if (line.getLength() > ADD_RADIUS) {
+    alert("회사에서 2km 안의 가게만 추가할 수 있어요!");
     return;
   }
 
@@ -1803,5 +1844,265 @@ submitManualButton.addEventListener("click", async function () {
   listArea.hidden = false;
   map.panTo(position);
 });
+
+// 39. 🆕 정렬 바꾸기 (별점 높은 순 / 가까운 순 / 최근 추가 순)
+const SORT_OPTIONS = [
+  { value: "rating", label: "⭐ 별점 높은 순" },
+  { value: "distance", label: "🚶 가까운 순" },
+  { value: "recent", label: "🆕 최근 추가 순" }
+];
+
+// 지난번에 고른 정렬 기억해 두었다가 꺼내기
+try {
+  const savedSort = localStorage.getItem("sortMode");
+  if (SORT_OPTIONS.some(function (option) { return option.value === savedSort; })) {
+    sortMode = savedSort;
+  }
+} catch (error) {}
+
+// 두 가게 중 누가 앞에 올지 정하기
+function compareRestaurants(a, b) {
+  if (sortMode === "distance") {
+    return a.distance - b.distance; // 가까운 가게가 앞으로
+  }
+  if (sortMode === "recent") {
+    return new Date(b.created_at) - new Date(a.created_at); // 최근에 추가한 가게가 앞으로
+  }
+  // 별점 높은 순 (별점이 같으면 평가한 사람이 많은 가게가 앞으로, 별점 없는 가게는 맨 아래)
+  const diff = averageScore(b.ratings) - averageScore(a.ratings);
+  if (diff !== 0) {
+    return diff;
+  }
+  return b.ratings.length - a.ratings.length;
+}
+
+// 이미 그려 둔 카드와 핀을 새 순서로 다시 줄 세우기
+function resortList() {
+  const rows = restaurants.map(function (restaurant, index) {
+    return { restaurant: restaurant, card: cards[index], marker: markers[index] };
+  });
+  rows.sort(function (a, b) {
+    return compareRestaurants(a.restaurant, b.restaurant);
+  });
+
+  restaurants = rows.map(function (row) { return row.restaurant; });
+  cards = rows.map(function (row) { return row.card; });
+  markers = rows.map(function (row) { return row.marker; });
+
+  // 카드를 새 순서대로 페이지 버튼 바로 앞에 다시 붙이기
+  const pager = listArea.querySelector(".pager");
+  cards.forEach(function (card) {
+    listArea.insertBefore(card, pager);
+  });
+
+  listPage = 1;
+  applyFilter();
+  listArea.scrollTop = 0;
+}
+
+// 40. 🎀 자세히 보기 탭 (🍲 메뉴 · 리뷰 / 🔍 더 알아보기)
+let currentDetailTab = "menu";   // 지금 보고 있는 탭
+let detailTabStoreId = null;     // 탭을 보고 있던 가게
+
+function showDetailTab(panelName) {
+  currentDetailTab = panelName;
+  detailTabButtons.forEach(function (tab) {
+    tab.setAttribute("aria-selected", String(tab.dataset.panel === panelName));
+  });
+  detailPanels.forEach(function (panel) {
+    panel.hidden = panel.dataset.panel !== panelName;
+  });
+}
+
+detailTabButtons.forEach(function (tab) {
+  tab.addEventListener("click", function () {
+    showDetailTab(tab.dataset.panel);
+  });
+});
+
+// 41. 🆕 메뉴 수정 · 삭제
+// 이름이 없으면 한 번 물어보고 기억해 두기 (이름 칸이 리뷰 탭 안에 있어서)
+function needMyName() {
+  let name = userNameInput.value.trim();
+  if (name === "") {
+    name = (prompt("내 이름(닉네임)을 적어 주세요! (한 번 적으면 기억해 둘게요)") || "").trim().slice(0, 10);
+    if (name !== "") {
+      rememberName(name);
+    }
+  }
+  return name;
+}
+
+// 게시판에서 다시 불러와서 지금 가게 화면 새로 그리기
+async function refreshDetail() {
+  const data = await loadRestaurants();
+  const updated = data.find(function (restaurant) {
+    return restaurant.id === selectedRestaurant.id;
+  });
+  showDetail(updated, cameFromSearch);
+}
+
+// 메뉴 칸을 "고치기 칸"으로 바꾸기 (메뉴 정보 + 내 별점 · 한 줄 평)
+function openMenuEdit(menu, item) {
+  renderMenus(selectedRestaurant); // 다른 메뉴를 고치던 중이었다면 원래대로
+  item = menuList.children[selectedRestaurant.menus.indexOf(menu)];
+  item.innerHTML = "";
+  item.classList.add("editing");
+
+  // --- 메뉴 정보 (누구나 고칠 수 있어요) ---
+  const infoLabel = document.createElement("label");
+  infoLabel.textContent = "메뉴 정보";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.maxLength = 30;
+  nameInput.value = menu.name;
+  nameInput.setAttribute("aria-label", "메뉴 이름");
+
+  const priceInput = document.createElement("input");
+  priceInput.type = "number";
+  priceInput.min = "0";
+  priceInput.step = "500";
+  priceInput.placeholder = "가격 (선택, 원)";
+  priceInput.value = menu.price === null ? "" : menu.price;
+  priceInput.setAttribute("aria-label", "가격");
+
+  // --- 내 별점 · 한 줄 평 (선택) ---
+  const myName = userNameInput.value.trim();
+  const mine = menu.menu_reviews.find(function (review) {
+    return review.user_name === myName;
+  });
+  let editScore = mine ? mine.score : 0;
+
+  const starLabel = document.createElement("label");
+  starLabel.textContent = "내 별점 (선택 · 먹어 봤다면 남겨 주세요)";
+
+  const stars = document.createElement("div");
+  stars.className = "stars";
+  const starButtonsInEdit = [];
+  for (let score = 1; score <= 5; score = score + 1) {
+    const star = document.createElement("button");
+    star.className = "star";
+    star.dataset.score = score;
+    star.textContent = "★";
+    star.addEventListener("click", function () {
+      editScore = score;
+      paintStars(starButtonsInEdit, editScore);
+    });
+    starButtonsInEdit.push(star);
+    stars.append(star);
+  }
+  paintStars(starButtonsInEdit, editScore);
+
+  const commentInput = document.createElement("input");
+  commentInput.type = "text";
+  commentInput.maxLength = 50;
+  commentInput.placeholder = "이 메뉴 맛은 어땠나요? (선택)";
+  commentInput.value = mine ? (mine.comment || "") : "";
+  commentInput.setAttribute("aria-label", "한 줄 평");
+
+  const buttons = document.createElement("div");
+  buttons.className = "edit-buttons";
+  const saveButton = document.createElement("button");
+  saveButton.className = "save-menu";
+  saveButton.textContent = "저장";
+  const cancelButton = document.createElement("button");
+  cancelButton.className = "cancel-menu";
+  cancelButton.textContent = "취소";
+  buttons.append(saveButton, cancelButton);
+
+  item.append(infoLabel, nameInput, priceInput, starLabel, stars, commentInput, buttons);
+  nameInput.focus();
+
+  cancelButton.addEventListener("click", function () {
+    renderMenus(selectedRestaurant); // 원래대로
+  });
+
+  saveButton.addEventListener("click", async function () {
+    const newName = nameInput.value.trim();
+    if (newName === "") {
+      alert("메뉴 이름을 적어 주세요!");
+      return;
+    }
+    const newComment = commentInput.value.trim();
+    if (editScore === 0 && newComment !== "") {
+      alert("한 줄 평을 남기려면 별을 1개 이상 눌러 주세요!");
+      return;
+    }
+    const priceText = priceInput.value.trim();
+    const newPrice = priceText === "" ? null : Number(priceText);
+
+    // 1) 메뉴 정보가 바뀌었으면 고치기
+    if (newName !== menu.name || newPrice !== menu.price) {
+      const { data: changed, error } = await db.from("menus")
+        .update({ name: newName, price: newPrice })
+        .eq("id", menu.id)
+        .select();
+
+      // 오류가 없는데 바뀐 줄이 0개면 → 게시판 규칙(RLS)이 막은 거예요
+      if (!error && changed.length === 0) {
+        alert("메뉴를 고칠 권한이 없어요. (게시판 규칙을 확인해 주세요)");
+        return;
+      }
+      if (error) {
+        if (error.code === "23505") {
+          alert("이 가게에 같은 이름의 메뉴가 이미 있어요!");
+        } else {
+          alert("메뉴를 고치지 못했어요. 다시 시도해 주세요.");
+        }
+        console.log("메뉴 수정 실패:", error);
+        return;
+      }
+    }
+
+    // 2) 별을 골랐으면 내 별점 · 한 줄 평 저장 (이미 있으면 덮어쓰기)
+    if (editScore > 0) {
+      const userName = needMyName();
+      if (userName === "") {
+        return;
+      }
+      const { error: reviewError } = await db.from("menu_reviews").upsert(
+        {
+          menu_id: menu.id,
+          user_name: userName,
+          score: editScore,
+          comment: newComment || null
+        },
+        { onConflict: "menu_id,user_name" }
+      );
+      if (reviewError) {
+        alert("별점을 저장하지 못했어요. 다시 시도해 주세요.");
+        console.log("메뉴 별점 저장 실패:", reviewError);
+        return;
+      }
+    }
+
+    await refreshDetail();
+  });
+}
+
+// 메뉴 지우기 (리뷰도 같이 지워지니까 한 번 더 물어보기)
+async function deleteMenu(menu) {
+  let message = "'" + menu.name + "' 메뉴를 지울까요?";
+  if (menu.menu_reviews.length > 0) {
+    message = message + "\n이 메뉴에 남긴 리뷰 " + menu.menu_reviews.length + "개도 함께 지워져요.";
+  }
+  if (!confirm(message)) {
+    return;
+  }
+
+  const { data: removed, error } = await db.from("menus").delete().eq("id", menu.id).select();
+  if (!error && removed.length === 0) {
+    alert("메뉴를 지울 권한이 없어요. (게시판 규칙을 확인해 주세요)");
+    return;
+  }
+  if (error) {
+    alert("메뉴를 지우지 못했어요. 다시 시도해 주세요.");
+    console.log("메뉴 삭제 실패:", error);
+    return;
+  }
+
+  await refreshDetail();
+}
 
 loadRestaurants();

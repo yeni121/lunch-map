@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>오늘 뭐 먹지?</title>
+    <!-- 🎀 글꼴 후보들 (어떤 걸 쓸지는 style.css 의 --font-title, --font-body 에서 골라요) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Do+Hyeon&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+    <!-- (나눔스퀘어라운드는 굵기별로 이름이 달라서, style.css 맨 위에서 한 이름으로 묶어 불러와요) -->
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:,">
 </head>
 <body>
     <header class="top-bar">
-        <h1>오늘 뭐 먹지?</h1>
+        <span class="brand-icon" aria-hidden="true">🍚</span>
+        <div class="brand-text">
+            <h1>오늘 뭐 먹지?</h1>
+            <!-- 🆕 처음 온 사람에게: 맛집 추가부터! -->
+            <p class="top-hint">💡 아는 맛집을 알려 주고 싶다면 먼저 <b>[+ 맛집 추가]</b>를 눌러 주세요. 검색하거나 지도에서 가게를 콕 누르면 돼요!</p>
+        </div>
     </header>
 
     <main class="content">
@@ -23,12 +32,33 @@
             <button class="back-button">← 목록으로</button>
             <h2 class="detail-name"></h2>
             <span class="manual-badge" hidden>✏️ 직접 추가한 가게</span>
-            <p class="detail-info"></p>
-            <p class="detail-rating"></p>
-            <div class="detail-actions">
-                <button class="edit-button">수정</button>
-                <button class="delete-button">삭제</button>
+            <!-- 🎀 음식 종류 · 별점 ……… [수정] [삭제] 를 한 줄에 -->
+            <div class="detail-summary">
+                <p class="detail-meta">
+                    <span class="detail-info"></span>
+                    <span class="detail-rating"></span>
+                </p>
+                <div class="detail-actions">
+                    <button class="edit-button">수정</button>
+                    <button class="delete-button">삭제</button>
+                </div>
             </div>
+            <div class="card-tags detail-tags"></div>
+            <!-- 🆕 내 별점: 별을 누르면 바로 저장 (배달 앱처럼 가볍게) -->
+            <div class="quick-rating">
+                <span class="quick-rating-label">내 별점</span>
+                <div class="stars quick-stars">
+                    <button class="star" data-score="1" aria-label="1점">★</button>
+                    <button class="star" data-score="2" aria-label="2점">★</button>
+                    <button class="star" data-score="3" aria-label="3점">★</button>
+                    <button class="star" data-score="4" aria-label="4점">★</button>
+                    <button class="star" data-score="5" aria-label="5점">★</button>
+                </div>
+                <span class="quick-rating-hint"></span>
+                <button class="change-name">이름 바꾸기</button>
+            </div>
+            <!-- 내 이름(닉네임)을 담아 두는 보이지 않는 칸 (처음 한 번 물어보고 기억해요) -->
+            <input id="user-name" type="hidden">
             <div class="edit-form" hidden>
                 <!-- 🆕 직접 추가한 가게만 이름을 고칠 수 있어요 -->
                 <label for="edit-name" class="edit-name-part">가게 이름 바꾸기</label>
@@ -46,7 +76,43 @@
                     <button class="cancel-edit">취소</button>
                 </div>
             </div>
-            <div class="review-list"></div>
+            <!-- 🎀 메뉴 · 리뷰 / 더 알아보기 를 탭으로 나눠서, 누른 것만 보여주기 -->
+            <div class="tabs detail-tabs" role="tablist">
+                <button class="tab" role="tab" data-panel="menu">🍲 메뉴 · 리뷰</button>
+                <button class="tab" role="tab" data-panel="info">🔍 더 알아보기</button>
+            </div>
+
+            <!-- 🍲 메뉴 · 리뷰 탭 (리뷰는 메뉴마다 남겨요, 배달 앱처럼) -->
+            <div class="detail-panel" data-panel="menu">
+            <div class="menu-section">
+                <div class="menu-header">
+                    <strong>🍲 메뉴</strong>
+                    <button class="menu-add-toggle">+ 메뉴 추가</button>
+                </div>
+                <div class="menu-add-form" hidden>
+                    <input id="menu-name" type="text" maxlength="30" placeholder="메뉴 이름 (예: 순대국 특)">
+                    <input id="menu-price" type="number" min="0" step="500" placeholder="가격 (선택, 원)">
+                    <!-- 🆕 먹어 봤다면 별점 · 한 줄 평도 같이 (선택) -->
+                    <label>별점 (선택 · 먹어 봤다면 남겨 주세요)</label>
+                    <div class="stars">
+                        <button class="star" data-score="1">★</button>
+                        <button class="star" data-score="2">★</button>
+                        <button class="star" data-score="3">★</button>
+                        <button class="star" data-score="4">★</button>
+                        <button class="star" data-score="5">★</button>
+                    </div>
+                    <input id="menu-add-comment" type="text" maxlength="50" placeholder="이 메뉴 맛은 어땠나요? (선택)">
+                    <div class="edit-buttons">
+                        <button class="save-menu">추가</button>
+                        <button class="cancel-menu">취소</button>
+                    </div>
+                </div>
+                <div class="menu-list"></div>
+            </div>
+            </div>
+
+            <!-- 🔍 더 알아보기 탭 -->
+            <div class="detail-panel" data-panel="info">
             <div class="more-info">
                 <strong>🔍 더 알아보기</strong>
                 <div class="more-info-links">
@@ -62,48 +128,6 @@
                     </a>
                 </div>
             </div>
-            <div class="rating-form">
-                <label for="user-name">내 이름(닉네임)</label>
-                <input id="user-name" type="text" maxlength="10" placeholder="예: 김팀원">
-                <div class="stars">
-                    <button class="star" data-score="1">★</button>
-                    <button class="star" data-score="2">★</button>
-                    <button class="star" data-score="3">★</button>
-                    <button class="star" data-score="4">★</button>
-                    <button class="star" data-score="5">★</button>
-                </div>
-                <label for="review-comment">한 줄 평 (선택)</label>
-                <input id="review-comment" type="text" maxlength="50" placeholder="분위기나 서비스는 어땠나요?">
-                <button class="submit-rating">별점 남기기</button>
-            </div>
-                        <div class="menu-section">
-                <div class="menu-header">
-                    <strong>🍲 메뉴</strong>
-                    <button class="menu-add-toggle">+ 메뉴 추가</button>
-                </div>
-                <div class="menu-add-form" hidden>
-                    <input id="menu-name" type="text" maxlength="30" placeholder="메뉴 이름 (예: 순대국 특)">
-                    <input id="menu-price" type="number" min="0" step="500" placeholder="가격 (선택, 원)">
-                    <div class="edit-buttons">
-                        <button class="save-menu">추가</button>
-                        <button class="cancel-menu">취소</button>
-                    </div>
-                </div>
-                <div class="menu-list"></div>
-                                <div class="menu-review-form" hidden>
-                    <div class="stars">
-                        <button class="star" data-score="1">★</button>
-                        <button class="star" data-score="2">★</button>
-                        <button class="star" data-score="3">★</button>
-                        <button class="star" data-score="4">★</button>
-                        <button class="star" data-score="5">★</button>
-                    </div>
-                    <input id="menu-review-comment" type="text" maxlength="50" placeholder="이 메뉴 맛은 어땠나요? (선택)">
-                    <div class="edit-buttons">
-                        <button class="save-menu-review">리뷰 남기기</button>
-                        <button class="cancel-menu-review">취소</button>
-                    </div>
-                </div>
             </div>
         </section>
         <!-- 🆕 새로운 가게 탭: 근처인데 아직 우리 목록에 없는 식당 -->
@@ -115,7 +139,7 @@
         <section class="add-area" hidden>
             <button class="back-button add-back-button">← 목록으로</button>
             <h2>새 맛집 추가하기</h2>
-            <p class="add-help">가게 이름으로 검색하거나, 지도에서 가게를 눌러 보세요 (경찰병원역 1km 안)</p>
+            <p class="add-help">가게 이름으로 검색하거나, 지도에서 가게를 눌러 보세요 (회사에서 2km 안 · 회식 장소도 OK!)</p>
             <div class="search-row">
                 <input id="search-input" type="text" placeholder="예: 순대국">
                 <button class="search-button">검색</button>
@@ -128,7 +152,7 @@
             </p>
             <div class="rating-form manual-form" hidden>
                 <p class="selected-place">✏️ 직접 추가하기</p>
-                <p class="manual-place">📍 지도에서 가게 위치를 눌러 주세요 (회사 1km 안)</p>
+                <p class="manual-place">📍 지도에서 가게 위치를 눌러 주세요 (회사 2km 안)</p>
                 <label for="manual-name">가게 이름</label>
                 <input id="manual-name" type="text" maxlength="30" placeholder="예: 골목 백반집">
                 <label for="manual-category">음식 종류</label>
